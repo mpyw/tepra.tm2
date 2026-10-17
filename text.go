@@ -1,15 +1,17 @@
 package tepra
 
-import "errors"
+import (
+	"errors"
+	"strings"
+	"unicode/utf8"
+)
 
 // NewText returns a file of one label that prints text. text may hold line
 // breaks ("\n").
 func NewText(tape Tape, text string, opts ...TextOption) (*File, error) {
 	c, err := newTextOptionConfig(opts)
-	if text == "" {
-		err = errors.Join(err, ErrNoText)
-	}
-	if err != nil {
+	text = textLines(text)
+	if err := errors.Join(err, textCheck(text)); err != nil {
 		return nil, err
 	}
 	doc, err := newTextDocument(tape, text, c)
@@ -42,4 +44,26 @@ func newTextDocument(tape Tape, text string, c *optionConfig) (Document, error) 
 	doc := newDocument(tape, l.length, c.marginMM, drawers...)
 	c.styleDocument(&doc)
 	return doc, nil
+}
+
+// textLines turns the line breaks of text into "\n": "\r\n" of Windows and
+// a lone "\r" break lines too.
+//
+//declscope:shared // pages.go and pour.go read their texts with it
+func textLines(text string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n")
+}
+
+// textCheck reports what a file cannot hold as the text of a label: no
+// text, or text that is not UTF-8.
+//
+//declscope:shared // pages.go and pour.go check their texts with it
+func textCheck(text string) error {
+	switch {
+	case text == "":
+		return ErrNoText
+	case !utf8.ValidString(text):
+		return ErrBadText
+	}
+	return nil
 }

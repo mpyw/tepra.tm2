@@ -3,6 +3,7 @@ package tepra
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 // NewPages returns a file of one page per text, each laid out as NewText
@@ -15,9 +16,11 @@ func NewPages(tape Tape, texts []string, opts ...TextOption) (*File, error) {
 	}
 	c, err := newTextOptionConfig(opts)
 	errs := []error{err}
+	texts = slices.Clone(texts)
 	for i, text := range texts {
-		if text == "" {
-			errs = append(errs, fmt.Errorf("page %d: %w", i+1, ErrNoText))
+		texts[i] = textLines(text)
+		if err := textCheck(texts[i]); err != nil {
+			errs = append(errs, fmt.Errorf("page %d: %w", i+1, err))
 		}
 	}
 	if err := errors.Join(errs...); err != nil {

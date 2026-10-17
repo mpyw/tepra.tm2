@@ -15,6 +15,8 @@ var (
 	ErrInvalidOptions = errors.New("tepra: invalid options")
 	// ErrCrashesApp is a value TEPRA LINK 2 crashes on. It is not written.
 	ErrCrashesApp = errors.New("tepra: the app crashes on it")
+	// ErrBadText is text that is not UTF-8, which a file cannot hold.
+	ErrBadText = errors.New("tepra: text is not UTF-8")
 	// ErrNoText is a label with no text: an empty text, or no values to
 	// pour.
 	ErrNoText = errors.New("tepra: no text")
