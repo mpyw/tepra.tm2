@@ -72,8 +72,14 @@ func TestNewText_iconWithFixedLength(t *testing.T) {
 
 func TestNewPages_layoutError(t *testing.T) {
 	_, err := tepra.NewPages(tepra.Tape18mm, []string{"a", "b"}, tepra.WithPaddingMM(10))
-	if !errors.Is(err, tepra.ErrNoRoom) || !strings.HasPrefix(err.Error(), "page 1: ") {
-		t.Errorf("%v, want ErrNoRoom on page 1", err)
+	// The same error on both pages is reported once, with both (#9).
+	if !errors.Is(err, tepra.ErrNoRoom) || !strings.HasPrefix(err.Error(), "pages 1, 2: ") || strings.Contains(err.Error(), "\n") {
+		t.Errorf("%v, want one ErrNoRoom on pages 1 and 2", err)
+	}
+	// Different errors are each reported.
+	_, err = tepra.NewPages(tepra.Tape18mm, []string{"a", strings.Repeat("あ", 50), strings.Repeat("あ", 60)}, tepra.WithFontSize(20), tepra.WithLengthMM(20))
+	if !errors.Is(err, tepra.ErrNoRoom) || !strings.Contains(err.Error(), "pages 2, 3: ") {
+		t.Errorf("%v, want ErrNoRoom on pages 2 and 3", err)
 	}
 }
 
@@ -124,5 +130,36 @@ func TestMarshalJSON_byName(t *testing.T) {
 	var back tepra.Drawers
 	if err := back.UnmarshalJSON(b); err != nil || len(back) != len(ds) {
 		t.Errorf("Drawers.UnmarshalJSON: %v, %d drawers", err, len(back))
+	}
+}
+
+// The bytes given to WithIcon and WithBackground are copied: the caller may
+// reuse its buffer (#9).
+func TestWithIcon_copiesThePicture(t *testing.T) {
+	pic := fixturePicture(t, 4, 4, false)
+	opt := tepra.WithIcon(pic)
+	clear(pic)
+	f, err := tepra.NewText(tepra.Tape18mm, "x", opt)
+	if err != nil {
+		t.Fatalf("%v: the option read the cleared buffer", err)
+	}
+	if fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0]).Image[1] != 'P' {
+		t.Error("the icon is not the PNG given")
+	}
+}
+
+// A nil drawer, or a raw one with no JSON, is ErrBadFile, not a panic (#9).
+func TestDrawers_nil(t *testing.T) {
+	var text *tepra.TextDrawer
+	for name, d := range map[string]tepra.Drawer{"nil": nil, "nil text": text, "raw with no JSON": &tepra.RawDrawer{Type: "shape"}} {
+		f, err := tepra.NewText(tepra.Tape18mm, "x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Documents[0].Drawers = append(f.Documents[0].Drawers, d)
+		var buf bytes.Buffer
+		if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrBadFile) {
+			t.Errorf("%s: %v, want ErrBadFile", name, err)
+		}
 	}
 }

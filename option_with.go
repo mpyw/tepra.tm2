@@ -3,6 +3,7 @@
 package tepra
 
 import (
+	"bytes"
 	"math"
 	"time"
 )
@@ -120,12 +121,14 @@ func WithBorderWidth(w float64) Option {
 // WithIcon puts a PNG, JPEG or GIF picture before the text, as high as the
 // tape prints, keeping its shape.
 func WithIcon(picture []byte) Option {
+	picture = bytes.Clone(picture) // the caller may reuse its buffer
 	return func(c *optionConfig) { c.icon = picture }
 }
 
 // WithBackground stretches a PNG, JPEG or GIF picture under the whole
 // label.
 func WithBackground(picture []byte) Option {
+	picture = bytes.Clone(picture) // the caller may reuse its buffer
 	return func(c *optionConfig) { c.background = picture }
 }
 

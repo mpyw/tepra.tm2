@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v3"
+
+	"github.com/mpyw/tepra.tm2"
 )
 
 func main() {
@@ -48,6 +50,24 @@ func newMainCommand() *cli.Command {
 	}
 }
 
+// mainSentinels are the errors of package tepra. Each says "tepra: ",
+// which main prints at the start of each line already.
+var mainSentinels = []error{
+	tepra.ErrTapeNotSupported, tepra.ErrUnknownName, tepra.ErrInvalidOptions,
+	tepra.ErrCrashesApp, tepra.ErrBadFile, tepra.ErrBadText, tepra.ErrNoText,
+	tepra.ErrOverLimit, tepra.ErrNoRoom, tepra.ErrBadImage, tepra.ErrBadCode,
+}
+
+// mainMessage is err's message without the "tepra: " of the package's
+// errors. A "tepra: " in a value the user gave stays.
+func mainMessage(err error) string {
+	msg := err.Error()
+	for _, s := range mainSentinels {
+		msg = strings.ReplaceAll(msg, s.Error(), strings.TrimPrefix(s.Error(), "tepra: "))
+	}
+	return msg
+}
+
 // mainExitCode reports err on w, and returns the exit status for it.
 func mainExitCode(w io.Writer, err error) int {
 	var msg string
@@ -57,8 +77,7 @@ func mainExitCode(w io.Writer, err error) int {
 	case isExit:
 		msg, code = strings.TrimSpace(err.Error()), exit.ExitCode()
 	case err != nil:
-		// Errors of package tepra say "tepra: " already, even when wrapped.
-		msg, code = strings.ReplaceAll(err.Error(), "tepra: ", ""), 1
+		msg, code = mainMessage(err), 1
 	}
 	if msg == "" {
 		return code
