@@ -201,7 +201,7 @@ func (s mcpLabelStyle) mcpOptions() (tepra.Tape, []tepra.Option, error) {
 		return tepra.Tape{}, nil, err
 	}
 	settings := labelSettings{
-		name:           strings.TrimSuffix(filepath.Base(s.Path), ".tm2"),
+		name:           labelName(s.Path),
 		fill:           s.Fill,
 		align:          s.Align,
 		valign:         s.VerticalAlign,

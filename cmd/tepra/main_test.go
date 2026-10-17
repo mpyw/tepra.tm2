@@ -569,3 +569,22 @@ func TestPour_csvBlanksInsideQuotes(t *testing.T) {
 		t.Errorf("values %q, want %q", got, want)
 	}
 }
+
+// A usage error is returned for main to print once, with no help (#30).
+func TestUsageError_printsNothing(t *testing.T) {
+	for _, args := range [][]string{{"text", "a"}, {"text", "--nope", "-o", "x.tm2", "a"}, {"--nope"}} {
+		stdout, err := runMain(t, "", args...)
+		if err == nil || stdout != "" {
+			t.Errorf("%q: %v, printed %q", args, err, stdout)
+		}
+	}
+}
+
+// The label's name drops ".tm2" in any case (#30).
+func TestLabelName(t *testing.T) {
+	for path, want := range map[string]string{"a/X.TM2": "X", "x.tm2": "x", "x.Tm2": "x", "x.txt": "x.txt", "x": "x"} {
+		if got := labelName(path); got != want {
+			t.Errorf("labelName(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
