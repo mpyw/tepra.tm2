@@ -93,6 +93,9 @@ func blackImage(w, h float64) []byte {
 //
 //declscope:shared // layout.go stretches a Background to the label
 func stretchImage(data []byte, w, h float64) ([]byte, error) {
+	if err := imageCheckSize(data); err != nil {
+		return nil, err
+	}
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -127,6 +130,9 @@ func stretchImage(data []byte, w, h float64) ([]byte, error) {
 //
 //declscope:shared // layout.go puts the icon and the background on a label
 func decodeImage(data []byte) (pngData []byte, width, height int, err error) {
+	if err := imageCheckSize(data); err != nil {
+		return nil, 0, 0, err
+	}
 	img, format, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, 0, 0, err
@@ -143,6 +149,23 @@ func decodeImage(data []byte) (pngData []byte, width, height int, err error) {
 		return nil, 0, 0, err
 	}
 	return buf.Bytes(), b.Dx(), b.Dy(), nil
+}
+
+// imageMaxPixels is the most pixels a picture may have: 8192 by 8192, more
+// than a phone's camera takes. A small file may declare a huge picture,
+// which takes 4 bytes a pixel to decode.
+const imageMaxPixels = 8192 * 8192
+
+// imageCheckSize reports a picture too large to decode, from its header.
+func imageCheckSize(data []byte) error {
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	if cfg.Width*cfg.Height > imageMaxPixels {
+		return fmt.Errorf("picture of %d by %d pixels; up to %d pixels are taken", cfg.Width, cfg.Height, imageMaxPixels)
+	}
+	return nil
 }
 
 // imageWidthFor is the width in pixels of a picture height pixels high, of

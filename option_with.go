@@ -6,12 +6,18 @@ import (
 	"bytes"
 	"math"
 	"time"
+	"unicode/utf8"
 )
 
 // WithName names the file in the app, without ".tm2". It is "label" by
 // default.
 func WithName(name string) Option {
-	return func(c *optionConfig) { c.name = name }
+	return func(c *optionConfig) {
+		if !utf8.ValidString(name) {
+			c.optionError("name %q: %w", name, ErrBadText)
+		}
+		c.name = name
+	}
 }
 
 // WithTime sets the file's date. It is the time of NewPour or NewText by

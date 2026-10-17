@@ -399,12 +399,12 @@ Errors of the file system come back as they are, such as `fs.ErrNotExist`.
 | [`ErrCrashesApp`][ErrCrashesApp] | A value the app crashes on, such as alignment 3. It is never written |
 | [`ErrTapeNotSupported`][ErrTapeNotSupported] | A tape width whose sizes are not known |
 | [`ErrUnknownName`][ErrUnknownName] | A name [`ParseRotation`][ParseRotation], [`ParseCodeKind`][ParseCodeKind] and the like do not know |
-| [`ErrNoText`][ErrNoText] | No text, no values or pages, or an empty one |
+| [`ErrNoText`][ErrNoText] | No text, no values or pages, or one of blanks only |
 | [`ErrBadText`][ErrBadText] | Text that is not UTF-8 |
 | [`ErrBadFile`][ErrBadFile] | A file that is not a `.tm2` file the package can read, or one it cannot encode |
 | [`ErrOverLimit`][ErrOverLimit] | More rows, characters or columns than the app takes, or a label over 3000 mm |
 | [`ErrNoRoom`][ErrNoRoom] | Padding or a fixed length that leaves no room |
-| [`ErrBadImage`][ErrBadImage] | A picture that is not PNG, JPEG or GIF |
+| [`ErrBadImage`][ErrBadImage] | A picture that is not PNG, JPEG or GIF, or over 8192 by 8192 pixels |
 | [`ErrBadCode`][ErrBadCode] | A value the kind of code cannot hold, such as 13 digits for JAN-13 |
 
 ### Reading files

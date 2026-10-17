@@ -55,12 +55,13 @@ func textLines(text string) string {
 }
 
 // textCheck reports what a file cannot hold as the text of a label: no
-// text, or text that is not UTF-8.
+// text, text of blanks only, which prints nothing, or text that is not
+// UTF-8.
 //
 //declscope:shared // pages.go and pour.go check their texts with it
 func textCheck(text string) error {
 	switch {
-	case text == "":
+	case strings.TrimSpace(text) == "":
 		return ErrNoText
 	case !utf8.ValidString(text):
 		return ErrBadText
