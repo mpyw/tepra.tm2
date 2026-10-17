@@ -5,6 +5,7 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
+	"slices"
 )
 
 // The drawer types this package knows.
@@ -57,6 +58,11 @@ type BaseDrawer struct {
 	TapeVertical  bool `json:"tapeVertical"`
 	TapeTapeFrame Rect `json:"tapeTapeFrame"`
 	FrameTop      bool `json:"frameTop"`
+
+	// Unknown holds the keys this package does not know, as they were read,
+	// and writes them back after the others. A newer app may write keys a
+	// file read and written here must not lose.
+	Unknown jsontext.Value `json:",embed"`
 }
 
 // newBaseDrawer returns the fields the app writes for a new object in frame.
@@ -350,8 +356,62 @@ func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
 	if err := json.Unmarshal(raw, fields); err != nil {
 		return nil, fmt.Errorf("%s: %w", head.Type, err)
 	}
-	d.Base().Identifier = head.Identifier
+	b := d.Base()
+	b.Identifier = head.Identifier
+	// marshalDrawer writes the head itself, so it is not kept twice.
+	unknown, err := drawerWithout(b.Unknown, "type", "identifier", "")
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", head.Type, err)
+	}
+	b.Unknown = unknown
 	return d, nil
+}
+
+// drawerWithout returns obj, a JSON object, without the members of names.
+// An object left empty is nil.
+func drawerWithout(obj jsontext.Value, names ...string) (jsontext.Value, error) {
+	if len(obj) == 0 {
+		return nil, nil
+	}
+	dec := jsontext.NewDecoder(bytes.NewReader(obj))
+	var buf bytes.Buffer
+	enc := jsontext.NewEncoder(&buf)
+	if _, err := dec.ReadToken(); err != nil {
+		return nil, err
+	}
+	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
+		return nil, err
+	}
+	kept := 0
+	for dec.PeekKind() != jsontext.KindEndObject {
+		name, err := dec.ReadToken()
+		if err != nil {
+			return nil, err
+		}
+		// The token is valid only until the next read.
+		key := name.String()
+		v, err := dec.ReadValue()
+		if err != nil {
+			return nil, err
+		}
+		if slices.Contains(names, key) {
+			continue
+		}
+		if err := enc.WriteToken(jsontext.String(key)); err != nil {
+			return nil, err
+		}
+		if err := enc.WriteValue(v); err != nil {
+			return nil, err
+		}
+		kept++
+	}
+	if kept == 0 {
+		return nil, nil
+	}
+	if err := enc.WriteToken(jsontext.EndObject); err != nil {
+		return nil, err
+	}
+	return bytes.TrimSpace(buf.Bytes()), nil
 }
 
 // checkDrawer reports a field of d that crashes the app.

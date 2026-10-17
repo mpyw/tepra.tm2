@@ -50,6 +50,11 @@ type File struct {
 	CatalogTitle   string   `json:"CatalogTitle"`
 	CatalogTitleEN string   `json:"CatalogTitleEN"`
 	KeywordsEN     string   `json:"keywordsEN"`
+
+	// Unknown holds the keys this package does not know, as they were read,
+	// and writes them back after the others. A newer app may write keys a
+	// file read and written here must not lose.
+	Unknown jsontext.Value `json:",embed"`
 }
 
 // newFile returns a file of docs, set as the app saves one. The app opens
