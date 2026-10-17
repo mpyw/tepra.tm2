@@ -240,9 +240,13 @@ func labelReadPicture(path string) ([]byte, error) {
 
 // writeLabel writes f to path. It does not replace a file there unless
 // overwrite is set; hint says how to set it. The file is encoded first, so
-// a file that cannot be encoded writes nothing. A replaced file is written
-// beside the old one, then renamed over it, so a failed write leaves the
-// old one as it was.
+// a file that cannot be encoded writes nothing, and leaves a file there as
+// it was.
+//
+// A replaced file is written in place, as other tools write: a symlink
+// writes its target, and the file keeps its mode and its hard links. A
+// temporary file renamed over it would lose all three, and needs a folder
+// it can write to.
 //
 //declscope:shared // the commands and the MCP tools write their files with it
 func writeLabel(path string, f *tepra.File, overwrite bool, hint string) error {
@@ -250,46 +254,22 @@ func writeLabel(path string, f *tepra.File, overwrite bool, hint string) error {
 	if _, err := f.WriteTo(&buf); err != nil {
 		return err
 	}
-	path = filepath.Clean(path)
+	flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	if !overwrite {
-		fh, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if errors.Is(err, fs.ErrExist) {
-			return fmt.Errorf("%w: %s; replace it with %s", fs.ErrExist, path, hint)
-		}
-		if err != nil {
-			return err
-		}
-		if _, err := fh.Write(buf.Bytes()); err != nil {
-			_ = fh.Close()      // the write error is the one to report
-			_ = os.Remove(path) // the file is this call's, and incomplete
-			return err
-		}
-		return fh.Close()
+		flags |= os.O_EXCL
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*")
+	fh, err := os.OpenFile(filepath.Clean(path), flags, 0o644)
+	if errors.Is(err, fs.ErrExist) {
+		return fmt.Errorf("%w: %s; replace it with %s", fs.ErrExist, path, hint)
+	}
 	if err != nil {
 		return err
 	}
-	if _, err := tmp.Write(buf.Bytes()); err != nil {
-		_ = tmp.Close()           // the write error is the one to report
-		_ = os.Remove(tmp.Name()) // nothing else has it
+	if _, err := fh.Write(buf.Bytes()); err != nil {
+		_ = fh.Close() // the write error is the one to report
 		return err
 	}
-	if err := tmp.Close(); err != nil {
-		_ = os.Remove(tmp.Name()) // nothing else has it
-		return err
-	}
-	// CreateTemp makes the file 0600. A label file is as readable as one
-	// written in place.
-	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
-		_ = os.Remove(tmp.Name()) // nothing else has it
-		return err
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
-		_ = os.Remove(tmp.Name()) // nothing else has it
-		return err
-	}
-	return nil
+	return fh.Close()
 }
 
 // reportLabel writes what describeLabel says to w. The file is written by
