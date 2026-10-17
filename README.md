@@ -411,7 +411,8 @@ Errors of the file system come back as they are, such as `fs.ErrNotExist`.
 
 - [`ReadFile`][ReadFile] and [`ParseFile`][ParseFile] read a `.tm2` file, from the app or from this package.
 - Drawer types the package does not know are kept as [`RawDrawer`][RawDrawer].
-- Writing the file back keeps them as they were.
+- Keys it does not know, of the file, a document or a drawer, are kept in their `Unknown` field.
+- Writing the file back keeps both as they were.
 
 ## License
 

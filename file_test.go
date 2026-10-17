@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"math"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mpyw/tepra.tm2"
@@ -176,5 +177,44 @@ func TestFile_rejectsPagesTheAppCrashesOn(t *testing.T) {
 		if _, err := jsonv1.Marshal(f); err == nil {
 			t.Errorf("page %d, encoding/json: no error", page)
 		}
+	}
+}
+
+// Keys the package does not know survive a read and a write, on the file,
+// on a document and on each kind of drawer (#7).
+func TestReadFile_keepsUnknownKeys(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(fixturePicture(t, 2, 2, false)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if _, err := f.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	// Add a key to the file, the document and both drawers.
+	in := buf.String()
+	in = strings.Replace(in, `{"documents":`, `{"futureFile":1,"documents":`, 1)
+	in = strings.Replace(in, `"drawers":[`, `"futureDocument":[true],"drawers":[`, 1)
+	in = strings.ReplaceAll(in, `"":"",`, `"":"","futureDrawer":"kept",`)
+	g, err := tepra.ParseFile(strings.NewReader(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf.Reset()
+	if _, err := g.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	for key, want := range map[string]int{`"futureFile":1`: 1, `"futureDocument":[true]`: 1, `"futureDrawer":"kept"`: 2} {
+		if got := strings.Count(out, key); got != want {
+			t.Errorf("%s %d times, want %d, in\n%s", key, got, want, out)
+		}
+	}
+	// The head of each drawer is written once, by Drawers.
+	if got := strings.Count(out, `"type":`); got != 2 {
+		t.Errorf(`"type" %d times, want 2`, got)
+	}
+	if got := strings.Count(out, `"":""`); got != 2 {
+		t.Errorf(`"" %d times, want 2`, got)
 	}
 }

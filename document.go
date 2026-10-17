@@ -1,5 +1,7 @@
 package tepra
 
+import "encoding/json/jsontext"
+
 // Document is one label of a file: the tape settings and its drawers.
 type Document struct {
 	// Drawers are drawn in order, each over the ones before.
@@ -42,6 +44,11 @@ type Document struct {
 	Identifier          string `json:"identifier"`
 	ForegroundColorName string `json:"SettingsForegroundColorName"`
 	BackgroundColorName string `json:"SettingsBackgroundColorName"`
+
+	// Unknown holds the keys this package does not know, as they were read,
+	// and writes them back after the others. A newer app may write keys a
+	// file read and written here must not lose.
+	Unknown jsontext.Value `json:",embed"`
 }
 
 // newDocument returns a label on tape, length points long without margins,
