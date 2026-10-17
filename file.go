@@ -3,6 +3,7 @@ package tepra
 import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -84,7 +85,8 @@ func newFile(c *optionConfig, docs ...Document) *File {
 func ParseFile(r io.Reader) (*File, error) {
 	var f File
 	if err := json.UnmarshalRead(r, &f); err != nil {
-		return nil, err
+		// The reader's own errors are wrapped too, and stay testable.
+		return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
 	}
 	return &f, nil
 }
@@ -120,7 +122,7 @@ func (f *File) MarshalJSON() ([]byte, error) {
 // WriteTo writes f to w as a .tm2 file: one line of JSON, with <, > and &
 // as they are, as the app writes them.
 func (f *File) WriteTo(w io.Writer) (int64, error) {
-	b, err := json.Marshal(f)
+	b, err := f.fileEncode()
 	if err != nil {
 		return 0, err
 	}
@@ -130,9 +132,19 @@ func (f *File) WriteTo(w io.Writer) (int64, error) {
 
 // WriteFile writes f to path, replacing a file there.
 func (f *File) WriteFile(path string) error {
-	b, err := json.Marshal(f)
+	b, err := f.fileEncode()
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(filepath.Clean(path), b, 0o644)
+}
+
+// fileEncode encodes f. An error of a sentinel, such as ErrCrashesApp,
+// stays as it is. Any other is ErrBadFile.
+func (f *File) fileEncode() ([]byte, error) {
+	b, err := json.Marshal(f)
+	if err != nil && !errors.Is(err, ErrCrashesApp) {
+		return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
+	}
+	return b, err
 }

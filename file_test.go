@@ -6,6 +6,8 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"io/fs"
+	"math"
 	"path/filepath"
 	"testing"
 
@@ -87,10 +89,31 @@ func TestFile_WriteFile(t *testing.T) {
 }
 
 func TestParseFile_rejectsBadJSON(t *testing.T) {
-	for _, in := range []string{`{`, `{"documents":[{"drawers":[1]}]}`} {
-		if _, err := tepra.ParseFile(bytes.NewReader([]byte(in))); err == nil {
-			t.Errorf("ParseFile(%s): no error", in)
+	for _, in := range []string{`{`, `not json`, `{"documents":[{"drawers":[1]}]}`, `{"currentPage":"x"}`} {
+		if _, err := tepra.ParseFile(bytes.NewReader([]byte(in))); !errors.Is(err, tepra.ErrBadFile) {
+			t.Errorf("ParseFile(%s): %v, want ErrBadFile", in, err)
 		}
+	}
+	// Errors of the file system are as they are (#6).
+	if _, err := tepra.ReadFile(filepath.Join(t.TempDir(), "none.tm2")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("missing file: %v, want fs.ErrNotExist", err)
+	}
+}
+
+// A file the package cannot encode is ErrBadFile, from WriteTo and
+// WriteFile (#6).
+func TestFile_encodeError(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Documents[0].Margin = math.NaN()
+	var buf bytes.Buffer
+	if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrBadFile) {
+		t.Errorf("WriteTo: %v, want ErrBadFile", err)
+	}
+	if err := f.WriteFile(filepath.Join(t.TempDir(), "x.tm2")); !errors.Is(err, tepra.ErrBadFile) {
+		t.Errorf("WriteFile: %v, want ErrBadFile", err)
 	}
 }
 
