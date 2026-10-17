@@ -17,6 +17,9 @@ const layoutBarcodeLength = 2.5
 // It shows a shorter one this long, what is on it at the start.
 const layoutMinLengthMM = 12
 
+// layoutMaxLengthMM is the longest label the app makes, margins included.
+const layoutMaxLengthMM = 3000
+
 // layoutCodeFontSize is the font size written for a code. The app draws the
 // code to its frame.
 const layoutCodeFontSize = 11.5
@@ -103,6 +106,9 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 			if c.code == CodeText {
 				// The app sets sizes in steps of 0.5.
 				size = math.Floor(size*room/width*2) / 2
+				if size <= 0 {
+					return labelLayout{}, fmt.Errorf("%w: a label of %v mm is too short for its text", ErrNoRoom, c.lengthMM)
+				}
 			}
 			width = room
 		}
@@ -116,6 +122,11 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 			icon.Frame[0] += shift
 		}
 		pad += shift
+	}
+	// A fixed length is checked by WithLengthMM. One of what is on the
+	// label is checked here, before a background is made that long.
+	if mm := PointsToMM(length) + 2*c.marginMM; mm > layoutMaxLengthMM {
+		return labelLayout{}, fmt.Errorf("%w: a label of %.0f mm; the app takes up to %d mm", ErrOverLimit, mm, layoutMaxLengthMM)
 	}
 	x := pad + iconWidth
 	l.size, l.length = size, length

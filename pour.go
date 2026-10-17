@@ -3,6 +3,7 @@ package tepra
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"unicode/utf8"
 )
 
@@ -33,7 +34,17 @@ func NewPour(tape Tape, column string, values []string, opts ...PourOption) (*Fi
 	if len(values) > PourMaxRows {
 		errs = append(errs, fmt.Errorf("%w: %d values to pour; the app takes up to %d", ErrOverLimit, len(values), PourMaxRows))
 	}
+	if !utf8.ValidString(column) {
+		errs = append(errs, fmt.Errorf("column title: %w", ErrBadText))
+	}
+	values = slices.Clone(values)
 	for i, v := range values {
+		v = textLines(v)
+		values[i] = v
+		if err := textCheck(v); err != nil {
+			errs = append(errs, fmt.Errorf("value %d: %w", i+1, err))
+			continue
+		}
 		if n := utf8.RuneCountInString(v); n > PourMaxCellRunes {
 			errs = append(errs, fmt.Errorf("%w: value %d has %d characters; the app takes up to %d", ErrOverLimit, i+1, n, PourMaxCellRunes))
 		}

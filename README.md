@@ -238,6 +238,8 @@ Without a file, or with `-`, they read stdin.
 - A value in double quotes may hold line breaks and commas.
 - Blank rows are skipped. So are spaces around a value.
 - A row of two or more columns is an error.
+- The file must be UTF-8. In Excel, save it as "CSV UTF-8".
+- Rows may end in CRLF, LF or CR.
 
 This `items.csv` makes three labels:
 
@@ -396,8 +398,9 @@ Every error wraps one of these. Test it with `errors.Is`.
 | [`ErrCrashesApp`][ErrCrashesApp] | A value the app crashes on, such as alignment 3. It is never written |
 | [`ErrTapeNotSupported`][ErrTapeNotSupported] | A tape width whose sizes are not known |
 | [`ErrUnknownName`][ErrUnknownName] | A name [`ParseRotation`][ParseRotation], [`ParseCodeKind`][ParseCodeKind] and the like do not know |
-| [`ErrNoText`][ErrNoText] | No text, or no values or pages |
-| [`ErrOverLimit`][ErrOverLimit] | More rows, characters or columns than the app takes |
+| [`ErrNoText`][ErrNoText] | No text, no values or pages, or an empty one |
+| [`ErrBadText`][ErrBadText] | Text that is not UTF-8 |
+| [`ErrOverLimit`][ErrOverLimit] | More rows, characters or columns than the app takes, or a label over 3000 mm |
 | [`ErrNoRoom`][ErrNoRoom] | Padding or a fixed length that leaves no room |
 | [`ErrBadImage`][ErrBadImage] | A picture that is not PNG, JPEG or GIF |
 | [`ErrBadCode`][ErrBadCode] | A value the kind of code cannot hold, such as 13 digits for JAN-13 |
@@ -458,6 +461,7 @@ The Go gopher was designed by Renée French, under [CC BY 4.0](https://creativec
 [ErrUnknownName]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrUnknownName
 [ErrNoText]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrNoText
 [ErrOverLimit]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrOverLimit
+[ErrBadText]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrBadText
 [ErrNoRoom]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrNoRoom
 [ErrBadImage]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrBadImage
 [ErrBadCode]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrBadCode

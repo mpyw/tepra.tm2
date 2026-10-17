@@ -484,3 +484,24 @@ func TestInspect_rowsWithoutTitles(t *testing.T) {
 		t.Errorf("stdout\n%s", stdout)
 	}
 }
+
+// A CSV of rows ending in a lone "\r" is read row by row, and one that is
+// not UTF-8 says so (#5).
+func TestPour_csvLineEndsAndEncoding(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "x.tm2")
+	if _, err := runMain(t, "a\rb\rc\r", "pour", "-o", out); err != nil {
+		t.Fatal(err)
+	}
+	f, err := tepra.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.TableData) != 3 {
+		t.Errorf("%d rows, want 3", len(f.TableData))
+	}
+	// "カイロ" in Shift_JIS.
+	_, err = runMain(t, "\x83J\x83C\x83\x8d\n", "pour", "-f", "-o", out)
+	if !errors.Is(err, tepra.ErrBadText) || !strings.Contains(err.Error(), "UTF-8") {
+		t.Errorf("%v, want ErrBadText", err)
+	}
+}

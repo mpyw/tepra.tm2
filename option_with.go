@@ -2,7 +2,10 @@
 
 package tepra
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // WithName names the file in the app, without ".tm2". It is "label" by
 // default.
@@ -20,8 +23,8 @@ func WithTime(t time.Time) Option {
 // size at which the text fills the tape.
 func WithFontSize(pt float64) Option {
 	return func(c *optionConfig) {
-		if pt <= 0 {
-			c.optionError("font size %v is not above 0", pt)
+		if !(pt > 0) || math.IsInf(pt, 0) {
+			c.optionError("font size %v is not a number above 0", pt)
 		}
 		c.fontSize = pt
 	}
@@ -107,8 +110,8 @@ func WithBorder(b BorderType) Option {
 // by default.
 func WithBorderWidth(w float64) Option {
 	return func(c *optionConfig) {
-		if w <= 0 {
-			c.optionError("border width %v is not above 0", w)
+		if !(w > 0) || math.IsInf(w, 0) {
+			c.optionError("border width %v is not a number above 0", w)
 		}
 		c.borderWidth = w
 	}
@@ -153,8 +156,8 @@ func WithImageThreshold(level int) Option {
 // in mm: room for a border, or for the frame of a background.
 func WithPaddingMM(mm float64) Option {
 	return func(c *optionConfig) {
-		if mm < 0 {
-			c.optionError("padding %v mm is negative", mm)
+		if !(mm >= 0) || math.IsInf(mm, 0) {
+			c.optionError("padding %v mm is not a number of 0 or more", mm)
 		}
 		c.paddingMM, c.paddingSet = mm, true
 	}
@@ -164,7 +167,7 @@ func WithPaddingMM(mm float64) Option {
 // 1 to 500 as the app takes it. It is DefaultMarginMM by default.
 func WithMarginMM(mm float64) Option {
 	return func(c *optionConfig) {
-		if mm < 1 || mm > 500 {
+		if !(mm >= 1 && mm <= 500) {
 			c.optionError("margin %v mm; the app takes 1 to 500 mm", mm)
 		}
 		c.marginMM = mm
@@ -177,7 +180,7 @@ func WithMarginMM(mm float64) Option {
 // and what is on the label is centred.
 func WithLengthMM(mm float64) Option {
 	return func(c *optionConfig) {
-		if mm < 10 || mm > 3000 {
+		if !(mm >= 10 && mm <= 3000) {
 			c.optionError("length %v mm; the app takes 10 to 3000 mm", mm)
 		}
 		c.lengthMM = mm

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"context"
 	"encoding/csv"
 	"errors"
@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/urfave/cli/v3"
 
@@ -87,13 +88,21 @@ func readPourFile(cmd *cli.Command) ([]string, error) {
 // readPourValues reads a label from each row of r, a CSV file of one column,
 // as the app's own pour import reads one. A value in double quotes may hold
 // line breaks. Blank rows are skipped, spaces around a value are dropped,
-// and so is a UTF-8 byte order mark, which spreadsheets write.
+// and so is a UTF-8 byte order mark, which spreadsheets write. Rows may end
+// in "\r\n", "\n" or a lone "\r". The file must be UTF-8.
 func readPourValues(r io.Reader) ([]string, error) {
-	br := bufio.NewReader(r)
-	if bom, err := br.Peek(len(pourBOM)); err == nil && string(bom) == pourBOM {
-		_, _ = br.Discard(len(pourBOM)) // the bytes are buffered, so it cannot fail
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
 	}
-	cr := csv.NewReader(br)
+	b = bytes.TrimPrefix(b, []byte(pourBOM))
+	if !utf8.Valid(b) {
+		// Excel saves CSV in Shift_JIS by default in Japan.
+		return nil, fmt.Errorf("%w: save the file as UTF-8 (\"CSV UTF-8\" in Excel)", tepra.ErrBadText)
+	}
+	// encoding/csv ends rows at "\n" only.
+	b = bytes.ReplaceAll(bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n")), []byte("\r"), []byte("\n"))
+	cr := csv.NewReader(bytes.NewReader(b))
 	cr.FieldsPerRecord = 1
 	var values []string
 	for {
