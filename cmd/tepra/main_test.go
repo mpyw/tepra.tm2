@@ -354,3 +354,57 @@ func TestPour_readsCSV(t *testing.T) {
 		t.Error("an unclosed quote: no error")
 	}
 }
+
+func TestPages_rejects(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "x.tm2")
+	tests := map[string][]string{
+		"two files":      {"pages", "-o", out, "a", "b"},
+		"missing file":   {"pages", "-o", out, filepath.Join(dir, "none.csv")},
+		"missing folder": {"pages", "-o", filepath.Join(dir, "none", "x.tm2")},
+	}
+	for name, args := range tests {
+		if _, err := runMain(t, "a\n", args...); err == nil {
+			t.Errorf("%s: no error", name)
+		}
+	}
+}
+
+func TestInspect_picturesAndUnknownDrawers(t *testing.T) {
+	dir := t.TempDir()
+	pic := filepath.Join(dir, "pic.png")
+	if err := os.WriteFile(pic, fixturePicture(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "x.tm2")
+	if _, err := runMain(t, "", "text", "--icon", pic, "-o", out, "x"); err != nil {
+		t.Fatal(err)
+	}
+	f, err := tepra.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Documents[0].Drawers = append(f.Documents[0].Drawers, &tepra.RawDrawer{Type: "shape", JSON: []byte(`{"type":"shape","frame":[0,0,1,1]}`)})
+	if err := f.WriteFile(out); err != nil {
+		t.Fatal(err)
+	}
+	stdout, err := runMain(t, "", "inspect", out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"  image  ", "bytes, threshold 128", "  shape  ", "(not known to tepra)"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("no %q in\n%s", want, stdout)
+		}
+	}
+}
+
+func TestMainVersion_release(t *testing.T) {
+	// GoReleaser sets version without the "v" of the tag.
+	old := version
+	t.Cleanup(func() { version = old })
+	version = "1.2.3"
+	if got := mainVersion(); !strings.HasPrefix(got, "v1.2.3 (go") {
+		t.Errorf("mainVersion() = %q", got)
+	}
+}
