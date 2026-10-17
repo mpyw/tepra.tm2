@@ -102,7 +102,15 @@ func readPourValues(r io.Reader) ([]string, error) {
 	}
 	// encoding/csv ends rows at "\n" only.
 	b = bytes.ReplaceAll(bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n")), []byte("\r"), []byte("\n"))
-	cr := csv.NewReader(bytes.NewReader(b))
+	// Spaces around a quoted value are taken, as around any other. The CSV
+	// stays strict otherwise: with LazyQuotes, a quote left open would take
+	// every row after it into one value, and nobody would notice.
+	lines := bytes.Split(b, []byte("\n"))
+	for i, line := range lines {
+		lines[i] = bytes.TrimRight(line, " \t")
+	}
+	cr := csv.NewReader(bytes.NewReader(bytes.Join(lines, []byte("\n"))))
+	cr.TrimLeadingSpace = true
 	cr.FieldsPerRecord = 1
 	var values []string
 	for {

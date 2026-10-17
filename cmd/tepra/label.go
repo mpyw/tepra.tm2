@@ -17,8 +17,10 @@ import (
 
 // labelFlags are the flags of every command that makes a label.
 //
-//declscope:shared // pour.go and text.go take them
+//declscope:shared // pour.go, pages.go and text.go take them
 func labelFlags() []cli.Flag {
+	// The flags of a number say their default in Usage, where it is not 0.
+	// HideDefault keeps urfave/cli from adding "(default: 0)" after it.
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:     "output",
@@ -36,7 +38,7 @@ func labelFlags() []cli.Flag {
 			Value: tepra.Tape18mm.WidthMM,
 			Usage: "the tape width in `MM`: 4, 6, 9, 12, 18, 24, 36 or 50",
 		},
-		&cli.FloatFlag{Name: "font-size", Usage: "the font `SIZE`; by default the text fills the tape"},
+		&cli.FloatFlag{Name: "font-size", HideDefault: true, Usage: "the font `SIZE`; by default the text fills the tape"},
 		&cli.BoolFlag{Name: "bold", Usage: "write the text in bold"},
 		&cli.StringFlag{Name: "align", Usage: "where each line goes across: left (default), center or right"},
 		&cli.StringFlag{Name: "valign", Usage: "where the text goes down: top, middle (default) or bottom"},
@@ -44,14 +46,14 @@ func labelFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "vertical", Usage: "write the text top to bottom"},
 		&cli.StringFlag{Name: "fill", Usage: "the box behind the text: none (default), inverted (white on black) or shaded"},
 		&cli.StringFlag{Name: "border", Usage: "the line around the label: none (default), box, rounded, top-bottom, top or bottom"},
-		&cli.FloatFlag{Name: "border-width", Usage: "the `WIDTH` of the border: 0.7 by default, 0.35 thin, 2.8 thick"},
+		&cli.FloatFlag{Name: "border-width", HideDefault: true, Usage: "the `WIDTH` of the border: 0.7 by default, 0.35 thin, 2.8 thick"},
 		&cli.StringFlag{Name: "icon", Usage: "a PNG, JPEG or GIF `FILE` to put before the text"},
 		&cli.StringFlag{Name: "background", Usage: "a PNG, JPEG or GIF `FILE` to stretch under the whole label, such as a frame"},
 		&cli.StringFlag{Name: "image-mode", Usage: "how pictures turn black and white: threshold (default), diffusion or screen"},
-		&cli.IntFlag{Name: "image-threshold", Usage: "the grey `LEVEL`, 0 to 255, below which a pixel is black: 128 by default"},
-		&cli.FloatFlag{Name: "padding", Usage: "the blank between the label's edges and its text, in `MM`: 1.5 by default with a border"},
-		&cli.FloatFlag{Name: "margin", Usage: "the blank tape before and after the label, in `MM`, 1 to 500: 1 by default"},
-		&cli.FloatFlag{Name: "length", Usage: "make the label this long, in `MM`, 10 to 3000; the text is centred"},
+		&cli.IntFlag{Name: "image-threshold", HideDefault: true, Usage: "the grey `LEVEL`, 0 to 255, below which a pixel is black: 128 by default"},
+		&cli.FloatFlag{Name: "padding", HideDefault: true, Usage: "the blank between the label's edges and its text, in `MM`: 1.5 by default with a border"},
+		&cli.FloatFlag{Name: "margin", HideDefault: true, Usage: "the blank tape before and after the label, in `MM`, 1 to 500: 1 by default"},
+		&cli.FloatFlag{Name: "length", HideDefault: true, Usage: "make the label this long, in `MM`, 10 to 3000; the text is centred"},
 	}
 }
 
