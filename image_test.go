@@ -1,7 +1,9 @@
 package tepra_test
 
 import (
+	"bytes"
 	"errors"
+	"image/png"
 	"testing"
 
 	"github.com/mpyw/tepra.tm2"
@@ -41,5 +43,23 @@ func TestOptions_imageMode(t *testing.T) {
 	}
 	if img := fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0]); img.ImageMode != tepra.ImageModeThreshold || img.ImageThreshold != tepra.DefaultImageThreshold {
 		t.Errorf("default: mode %v, threshold %d", img.ImageMode, img.ImageThreshold)
+	}
+}
+
+// A stretched background has no more pixels than the printer has dots for
+// the label: 360 per inch (#8).
+func TestBackground_atMostThePrintersDots(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithBackground(fixturePicture(t, 10, 2000, false)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bg := fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0])
+	cfg, err := png.DecodeConfig(bytes.NewReader(bg.Image))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 43.2 points high at 5 dots a point.
+	if cfg.Height != 216 || float64(cfg.Width) > bg.Frame[2]*5+1 {
+		t.Errorf("%d by %d pixels for a %v by %v frame", cfg.Width, cfg.Height, bg.Frame[2], bg.Frame[3])
 	}
 }
