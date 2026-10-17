@@ -90,14 +90,18 @@ func TestFile_WriteFile(t *testing.T) {
 }
 
 func TestParseFile_rejectsBadJSON(t *testing.T) {
-	for _, in := range []string{`{`, `not json`, `{"documents":[{"drawers":[1]}]}`, `{"currentPage":"x"}`} {
+	for _, in := range []string{`{`, `not json`, `{"documents":[{"drawers":[1]}]}`, `{"currentPage":"x"}`, `null`, `{}`, `{"documents":[]}`} {
 		if _, err := tepra.ParseFile(bytes.NewReader([]byte(in))); !errors.Is(err, tepra.ErrBadFile) {
 			t.Errorf("ParseFile(%s): %v, want ErrBadFile", in, err)
 		}
 	}
-	// Errors of the file system are as they are (#6).
+	// Errors of the file system are as they are (#6), reading too (#20).
 	if _, err := tepra.ReadFile(filepath.Join(t.TempDir(), "none.tm2")); !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("missing file: %v, want fs.ErrNotExist", err)
+	}
+	var pathErr *fs.PathError
+	if _, err := tepra.ReadFile(t.TempDir()); !errors.As(err, &pathErr) || errors.Is(err, tepra.ErrBadFile) {
+		t.Errorf("a folder: %v, want the fs.PathError alone", err)
 	}
 }
 

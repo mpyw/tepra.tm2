@@ -90,8 +90,17 @@ func newFile(c *optionConfig, docs ...Document) *File {
 func ParseFile(r io.Reader) (*File, error) {
 	var f File
 	if err := json.UnmarshalRead(r, &f); err != nil {
-		// The reader's own errors are wrapped too, and stay testable.
-		return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
+		// An error of the reader comes back as it is, as err.go says.
+		var syntax *jsontext.SyntacticError
+		var semantic *json.SemanticError
+		if errors.As(err, &syntax) || errors.As(err, &semantic) {
+			return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
+		}
+		return nil, err
+	}
+	// null and {} are JSON, but no label: the app writes a document always.
+	if len(f.Documents) == 0 {
+		return nil, fmt.Errorf("%w: no documents", ErrBadFile)
 	}
 	return &f, nil
 }
