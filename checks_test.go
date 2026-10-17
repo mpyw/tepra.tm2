@@ -1,7 +1,9 @@
 package tepra_test
 
 import (
+	"encoding/binary"
 	"errors"
+	"hash/crc32"
 	"math"
 	"strings"
 	"testing"
@@ -131,5 +133,60 @@ func TestErrors_bounded(t *testing.T) {
 	_, err = tepra.NewPour(tepra.Tape18mm, "c", values, tepra.WithCode(tepra.CodeJAN13))
 	if !errors.Is(err, tepra.ErrBadCode) || !strings.HasSuffix(err.Error(), "and 19 more errors") || strings.Count(err.Error(), "\n") != 10 {
 		t.Errorf("29 bad codes: %v", err)
+	}
+}
+
+// A name that is not UTF-8 fails as an option, not in WriteTo (#19).
+func TestWithName_rejectsTextThatIsNotUTF8(t *testing.T) {
+	_, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithName("\xff"))
+	if !errors.Is(err, tepra.ErrInvalidOptions) || !errors.Is(err, tepra.ErrBadText) {
+		t.Errorf("%v, want ErrInvalidOptions and ErrBadText", err)
+	}
+}
+
+// Text of blanks only prints nothing, so it is no text (#19).
+func TestBuilders_rejectBlankText(t *testing.T) {
+	for _, text := range []string{" ", "\n", "\r", "　"} {
+		if _, err := tepra.NewText(tepra.Tape18mm, text); !errors.Is(err, tepra.ErrNoText) {
+			t.Errorf("NewText(%q): %v, want ErrNoText", text, err)
+		}
+		if _, err := tepra.NewPour(tepra.Tape18mm, "c", []string{"a", text}); !errors.Is(err, tepra.ErrNoText) {
+			t.Errorf("NewPour(%q): %v, want ErrNoText", text, err)
+		}
+	}
+}
+
+// A picture declaring more pixels than are taken fails from its header,
+// before it is decoded (#19).
+func TestPictures_tooLarge(t *testing.T) {
+	// The header of a PNG of 20000 by 20000 grey pixels, with no pixel data.
+	ihdr := binary.BigEndian.AppendUint32([]byte("IHDR"), 20000)
+	ihdr = binary.BigEndian.AppendUint32(ihdr, 20000)
+	ihdr = append(ihdr, 8, 0, 0, 0, 0)
+	png := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\x0d")
+	png = binary.BigEndian.AppendUint32(append(png, ihdr...), crc32.ChecksumIEEE(ihdr))
+	for name, opt := range map[string]tepra.Option{"icon": tepra.WithIcon(png), "background": tepra.WithBackground(png)} {
+		_, err := tepra.NewText(tepra.Tape18mm, "x", opt)
+		if !errors.Is(err, tepra.ErrBadImage) || !strings.Contains(err.Error(), "20000 by 20000") {
+			t.Errorf("%s: %v, want ErrBadImage for its size", name, err)
+		}
+	}
+}
+
+// customDrawer is a Drawer of the caller's own, with no BaseDrawer.
+type customDrawer struct{}
+
+func (customDrawer) DrawerType() string      { return "custom" }
+func (customDrawer) Base() *tepra.BaseDrawer { return nil }
+
+// A drawer with no BaseDrawer is ErrBadFile, not a panic (#19).
+func TestDrawers_noBase(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Documents[0].Drawers = append(f.Documents[0].Drawers, customDrawer{})
+	if err := f.WriteFile(t.TempDir() + "/x.tm2"); !errors.Is(err, tepra.ErrBadFile) {
+		t.Errorf("%v, want ErrBadFile", err)
 	}
 }

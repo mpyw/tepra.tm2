@@ -298,6 +298,9 @@ func marshalDrawer(enc *jsontext.Encoder, d Drawer) error {
 		}
 		return enc.WriteValue(d.JSON)
 	}
+	if d.Base() == nil {
+		return fmt.Errorf("%w: a %s drawer with no BaseDrawer", ErrBadFile, d.DrawerType())
+	}
 	if err := checkDrawer(d); err != nil {
 		return err
 	}
