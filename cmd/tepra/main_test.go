@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -264,11 +265,13 @@ func TestMainExitCode(t *testing.T) {
 		out  string
 	}{
 		{nil, 0, ""},
-		{errors.New("tepra: no text"), 1, "tepra: no text\n"},
+		{tepra.ErrNoText, 1, "tepra: no text\n"},
 		{errors.New("pour takes one file at most"), 1, "tepra: pour takes one file at most\n"},
 		{cli.Exit("quiet", 3), 3, "tepra: quiet\n"},
 		{cli.Exit("", 4), 4, ""},
-		{errors.Join(errors.New("tepra: bad option"), errors.New("value 1: tepra: bad value")), 1, "tepra: bad option\ntepra: value 1: bad value\n"},
+		{errors.Join(fmt.Errorf("%w: margin", tepra.ErrInvalidOptions), fmt.Errorf("value 1: %w", tepra.ErrNoText)), 1, "tepra: invalid options: margin\ntepra: value 1: no text\n"},
+		// A "tepra: " of the user's own stays (#9).
+		{fmt.Errorf("%w: %q", tepra.ErrBadCode, "tepra: 12"), 1, "tepra: bad value for a code: \"tepra: 12\"\n"},
 	}
 	for _, tt := range tests {
 		var w bytes.Buffer

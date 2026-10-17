@@ -247,7 +247,7 @@ func (ds Drawers) MarshalJSONTo(enc *jsontext.Encoder) error {
 	}
 	for i, d := range ds {
 		if err := marshalDrawer(enc, d); err != nil {
-			return fmt.Errorf("tepra: drawer %d: %w", i, err)
+			return fmt.Errorf("drawer %d: %w", i, err)
 		}
 	}
 	return enc.WriteToken(jsontext.EndArray)
@@ -264,7 +264,7 @@ func (ds *Drawers) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	for i, raw := range raws {
 		d, err := unmarshalDrawer(raw)
 		if err != nil {
-			return fmt.Errorf("tepra: drawer %d: %w", i, err)
+			return fmt.Errorf("drawer %d: %w", i, err)
 		}
 		out[i] = d
 	}
@@ -287,8 +287,16 @@ func (ds *Drawers) UnmarshalJSON(data []byte) error {
 
 // marshalDrawer writes d to enc.
 func marshalDrawer(enc *jsontext.Encoder, d Drawer) error {
-	if r, ok := d.(*RawDrawer); ok {
-		return enc.WriteValue(r.JSON)
+	switch d := d.(type) {
+	case nil, *TextDrawer, *PourDrawer, *ImageDrawer:
+		if d == nil || drawerIsNil(d) {
+			return fmt.Errorf("%w: no drawer", ErrBadFile)
+		}
+	case *RawDrawer:
+		if d == nil || len(d.JSON) == 0 {
+			return fmt.Errorf("%w: a raw drawer with no JSON", ErrBadFile)
+		}
+		return enc.WriteValue(d.JSON)
 	}
 	if err := checkDrawer(d); err != nil {
 		return err
@@ -324,6 +332,20 @@ func marshalDrawer(enc *jsontext.Encoder, d Drawer) error {
 		}
 	}
 	return enc.WriteToken(jsontext.EndObject)
+}
+
+// drawerIsNil reports whether d is a nil pointer of a drawer type this
+// package knows.
+func drawerIsNil(d Drawer) bool {
+	switch d := d.(type) {
+	case *TextDrawer:
+		return d == nil
+	case *PourDrawer:
+		return d == nil
+	case *ImageDrawer:
+		return d == nil
+	}
+	return false
 }
 
 // unmarshalDrawer reads a drawer of the type raw names.
