@@ -441,13 +441,6 @@ func TestWriteLabel_failedWriteKeepsTheOldFile(t *testing.T) {
 	if _, err := os.Stat(fresh); !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("a file was left: %v", err)
 	}
-	entries, err := os.ReadDir(filepath.Dir(out))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) != 1 {
-		t.Errorf("%d files in the folder, want only x.tm2", len(entries))
-	}
 }
 
 func TestWriteLabel_replaces(t *testing.T) {
@@ -464,12 +457,42 @@ func TestWriteLabel_replaces(t *testing.T) {
 	if got := f.TextWords; got != "two" {
 		t.Errorf("text %q, want two", got)
 	}
-	info, err := os.Stat(out)
+}
+
+// A replaced label is written in place: through a symlink, keeping its
+// mode, in a folder it cannot create files in (#17).
+func TestWriteLabel_replacesInPlace(t *testing.T) {
+	dir := t.TempDir()
+	real := filepath.Join(dir, "real.tm2")
+	if _, err := runMain(t, "", "text", "-o", real, "one"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(real, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "link.tm2")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) }) // so TempDir can remove it
+	if _, err := runMain(t, "", "text", "-f", "-o", link, "two"); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(link); err != nil || info.Mode()&fs.ModeSymlink == 0 {
+		t.Errorf("link: %v, %v; want it still a symlink", info, err)
+	}
+	f, err := tepra.ReadFile(real)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o644 {
-		t.Errorf("mode %v, want 0644", info.Mode().Perm())
+	if f.TextWords != "two" {
+		t.Errorf("target %q, want two", f.TextWords)
+	}
+	if info, err := os.Stat(real); err != nil || info.Mode().Perm() != 0o600 {
+		t.Errorf("target mode %v, %v; want 0600", info.Mode().Perm(), err)
 	}
 }
 
