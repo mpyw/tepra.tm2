@@ -9,7 +9,7 @@ Writes `.tm2` files, the labels of TEPRA LINK 2. See README.md for the CLI, MCP 
 - Keep the app's quirks: the `"": ""` key after each drawer's identifier, the misspelled `BILineWidhValue`, 50 columns in `tableData` and `tableHeader`. Nobody knows which of them the app needs to read a file.
 - `testdata/` holds only files made for this repository. A user's own labels can be personal. Files from the app's templates carry KING JIM's artwork.
 - Check every error, or drop it with `_ =` and a comment saying why. errcheck runs with none of its default exclusions, in tests too.
-- Every error of package tepra wraps a sentinel of `err.go`, so callers test it with `errors.Is`. A new kind of failure gets a new sentinel there.
+- Every error of package tepra wraps a sentinel of `err.go`, so callers test it with `errors.Is`. A new kind of failure gets a new sentinel there. The one exception: errors of the file system and of a reader or writer come back as they are, since `errors.Is` already tests them (`fs.ErrNotExist`).
 - JSON goes through `encoding/json/v2`. A type with its own encoding implements `MarshalJSONTo` and `UnmarshalJSONFrom`, and `MarshalJSON` and `UnmarshalJSON` that call them, for `encoding/json`.
 - A field the app writes stays, even when changing it prints nothing. Its comment says what was tried. The options and the CLI offer only what showed differently.
 
