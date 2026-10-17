@@ -360,25 +360,26 @@ func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
 	if err := json.Unmarshal(raw, &head); err != nil {
 		return nil, err
 	}
-	// fields is what the drawer is read into. A RawDrawer keeps the JSON, so
-	// only the fields every drawer has are read.
 	var d Drawer
-	var fields any
 	switch head.Type {
 	case DrawerTypeText:
 		d = &TextDrawer{}
-		fields = d
 	case DrawerTypePour:
 		d = &PourDrawer{}
-		fields = d
 	case DrawerTypeImage:
 		d = &ImageDrawer{}
-		fields = d
 	default:
+		// A drawer this package does not know is kept as it is. Its keys
+		// may differ from the ones every drawer here has, so BaseDrawer is
+		// left zero when they cannot be read into it.
 		r := &RawDrawer{Type: head.Type, JSON: raw}
-		d, fields = r, &r.BaseDrawer
+		if err := json.Unmarshal(raw, &r.BaseDrawer); err != nil {
+			r.BaseDrawer = BaseDrawer{} // the JSON is kept whole
+		}
+		r.Identifier = head.Identifier
+		return r, nil
 	}
-	if err := json.Unmarshal(raw, fields); err != nil {
+	if err := json.Unmarshal(raw, d); err != nil {
 		return nil, fmt.Errorf("%s: %w", head.Type, err)
 	}
 	b := d.Base()

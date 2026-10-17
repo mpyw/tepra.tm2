@@ -507,7 +507,7 @@ func TestWriteLabel_replacesInPlace(t *testing.T) {
 // A file with rows but no column titles is described, not a panic (#4).
 func TestInspect_rowsWithoutTitles(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "x.tm2")
-	if err := os.WriteFile(path, []byte(`{"documents":[{"drawers":[]}],"currentPage":0,"tableData":[["a"]]}`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"documents":[{"SettingsTapeWidth":18,"drawers":[]}],"currentPage":0,"tableData":[["a"]]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	stdout, err := runMain(t, "", "inspect", path)
