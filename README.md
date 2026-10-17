@@ -236,6 +236,7 @@ Without a file, or with `-`, they read stdin.
 - Each row is a label.
 - A line break in a value breaks the label into lines.
 - A value in double quotes may hold line breaks and commas.
+- A double quote in a value is doubled, inside double quotes: `"He said ""hi"""`.
 - Blank rows are skipped. So are spaces around a value.
 - A row of two or more columns is an error.
 - The file must be UTF-8. In Excel, save it as "CSV UTF-8".
@@ -254,7 +255,7 @@ This `items.csv` makes three labels:
 
 > [!TIP]
 > A file with one value per line is a CSV file of one column already.
-> Quote only the values that hold a line break or a comma.
+> Quote only the values that hold a line break, a comma or a double quote.
 > Spreadsheets quote such values when they save a CSV file.
 
 ### Tool options

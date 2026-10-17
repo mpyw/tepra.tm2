@@ -247,7 +247,7 @@ func (ds Drawers) MarshalJSONTo(enc *jsontext.Encoder) error {
 	}
 	for i, d := range ds {
 		if err := marshalDrawer(enc, d); err != nil {
-			return fmt.Errorf("drawer %d: %w", i, err)
+			return fmt.Errorf("drawer %d: %w", i+1, err)
 		}
 	}
 	return enc.WriteToken(jsontext.EndArray)
@@ -264,7 +264,7 @@ func (ds *Drawers) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	for i, raw := range raws {
 		d, err := unmarshalDrawer(raw)
 		if err != nil {
-			return fmt.Errorf("drawer %d: %w", i, err)
+			return fmt.Errorf("drawer %d: %w", i+1, err)
 		}
 		out[i] = d
 	}

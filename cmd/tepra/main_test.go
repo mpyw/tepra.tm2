@@ -356,6 +356,14 @@ func TestPour_readsCSV(t *testing.T) {
 	if _, err := runMain(t, "\"open\n", "pour", "-f", "-o", out); err == nil {
 		t.Error("an unclosed quote: no error")
 	}
+	// Spaces around a quoted value go, as around any other (#21). A quote
+	// in a value is doubled, inside quotes.
+	if _, err := runMain(t, "  \"a,b\"  \n\"He said \"\"hi\"\"\"\n", "pour", "-f", "-o", out); err != nil {
+		t.Fatal(err)
+	}
+	if f, err := tepra.ReadFile(out); err != nil || f.TableData[0][0] != "a,b" || f.TableData[1][0] != `He said "hi"` {
+		t.Errorf("%v, rows %q", err, f.TableData)
+	}
 }
 
 func TestPages_rejects(t *testing.T) {
@@ -529,5 +537,16 @@ func TestPour_csvLineEndsAndEncoding(t *testing.T) {
 	_, err = runMain(t, "\x83J\x83C\x83\x8d\n", "pour", "-f", "-o", out)
 	if !errors.Is(err, tepra.ErrBadText) || !strings.Contains(err.Error(), "UTF-8") {
 		t.Errorf("%v, want ErrBadText", err)
+	}
+}
+
+// Help says each default once, as its usage says it (#21).
+func TestHelp_defaults(t *testing.T) {
+	stdout, err := runMain(t, "", "text", "--help")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(stdout, "(default: 0)") {
+		t.Errorf("help says (default: 0):\n%s", stdout)
 	}
 }

@@ -302,3 +302,15 @@ func TestMCP_inspectRowsWithoutTitles(t *testing.T) {
 		}
 	}
 }
+
+// A path that is absolute but names no .tm2 file says so (#21).
+func TestMCP_pathNotTM2(t *testing.T) {
+	session := mcpConnect(t)
+	dir := t.TempDir()
+	for _, path := range []string{filepath.Join(dir, "x.TM2"), filepath.Join(dir, ".tm2")} {
+		res := mcpCallResult(t, session, "create_text_label", map[string]any{"path": path, "text": "a"})
+		if text := mcpResultText(res); !res.IsError || !strings.Contains(text, "must name a .tm2 file") || strings.Contains(text, "absolute") {
+			t.Errorf("%s: %s", path, text)
+		}
+	}
+}

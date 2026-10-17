@@ -36,6 +36,9 @@ const mcpInstructions = "Make .tm2 label files for KING JIM's TEPRA LINK 2 app. 
 // directory is not the client's, so a relative path would point elsewhere.
 var errMCPRelativePath = errors.New("path must be absolute")
 
+// errMCPNotTM2 is a path to write that does not name a .tm2 file.
+var errMCPNotTM2 = errors.New("path must name a .tm2 file, such as label.tm2")
+
 // mcpLabelStyle are the inputs every tool that makes a label takes.
 type mcpLabelStyle struct {
 	Path           string   `json:"path" jsonschema:"absolute path of the .tm2 file to write, ending in .tm2"`
@@ -183,8 +186,11 @@ func mcpInspect(_ context.Context, _ *mcp.CallToolRequest, in mcpInspectInput) (
 
 // mcpOptions checks s and converts it for package tepra.
 func (s mcpLabelStyle) mcpOptions() (tepra.Tape, []tepra.Option, error) {
-	if !filepath.IsAbs(s.Path) || !strings.HasSuffix(s.Path, ".tm2") {
-		return tepra.Tape{}, nil, fmt.Errorf("%w, and end in .tm2: %s", errMCPRelativePath, s.Path)
+	if !filepath.IsAbs(s.Path) {
+		return tepra.Tape{}, nil, fmt.Errorf("%w: %s", errMCPRelativePath, s.Path)
+	}
+	if name := filepath.Base(s.Path); !strings.HasSuffix(name, ".tm2") || name == ".tm2" {
+		return tepra.Tape{}, nil, fmt.Errorf("%w: %s", errMCPNotTM2, s.Path)
 	}
 	width := s.TapeWidthMM
 	if width == 0 {
