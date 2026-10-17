@@ -67,6 +67,11 @@ var imageModeNames = []string{
 // shape.
 const imageShapeHeight = 100
 
+// imageDotsPerPoint is the printer's dots per point: 360 dots per inch. A
+// stretched picture has no more pixels than the printer has dots for its
+// frame, however large it was.
+const imageDotsPerPoint = 360.0 / 72
+
 // blackImage returns a black PNG of the shape of a w by h frame. The app
 // keeps the shape of a picture, so one of another shape would not cover the
 // frame.
@@ -96,12 +101,18 @@ func stretchImage(data []byte, w, h float64) ([]byte, error) {
 	if b.Empty() {
 		return nil, errors.New("picture has no pixels")
 	}
-	dh := max(b.Dy(), imageShapeHeight)
-	dst := image.NewRGBA(image.Rect(0, 0, imageWidthFor(dh, w, h), dh))
+	dh := min(max(b.Dy(), imageShapeHeight), int(math.Ceil(h*imageDotsPerPoint)))
+	dst := image.NewNRGBA(image.Rect(0, 0, imageWidthFor(dh, w, h), dh))
 	dw := dst.Bounds().Dx()
+	// Each row and column of src is found once, not per pixel.
+	cols := make([]int, dw)
+	for x := range cols {
+		cols[x] = b.Min.X + x*b.Dx()/dw
+	}
 	for y := range dh {
-		for x := range dw {
-			dst.Set(x, y, src.At(b.Min.X+x*b.Dx()/dw, b.Min.Y+y*b.Dy()/dh))
+		sy := b.Min.Y + y*b.Dy()/dh
+		for x, sx := range cols {
+			dst.Set(x, y, src.At(sx, sy))
 		}
 	}
 	var buf bytes.Buffer
