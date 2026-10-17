@@ -3,6 +3,7 @@ package tepra_test
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"math"
 	"strings"
@@ -220,5 +221,51 @@ func TestLayout_noRoomSaysWhy(t *testing.T) {
 		if !errors.Is(err, tepra.ErrNoRoom) || !strings.HasSuffix(err.Error(), tt.want) {
 			t.Errorf("%v, want ErrNoRoom: ...%s", err, tt.want)
 		}
+	}
+}
+
+// failingReader gives its bytes, then fails.
+type failingReader struct {
+	data []byte
+	err  error
+}
+
+func (r *failingReader) Read(p []byte) (int, error) {
+	if len(r.data) == 0 {
+		return 0, r.err
+	}
+	n := copy(p, r.data)
+	r.data = r.data[n:]
+	return n, nil
+}
+
+// A reader's error comes back as it is, even inside a drawer's value (#28).
+func TestParseFile_readerErrorInsideAValue(t *testing.T) {
+	boom := errors.New("boom")
+	for _, head := range []string{``, `{"documents":[{`, `{"documents":[{"drawers":[{"type":"text","TIText":"ab`} {
+		_, err := tepra.ParseFile(&failingReader{data: []byte(head), err: boom})
+		if !errors.Is(err, boom) || errors.Is(err, tepra.ErrBadFile) {
+			t.Errorf("after %q: %v, want boom alone", head, err)
+		}
+	}
+}
+
+// The errors not listed keep their sentinels, and a long value makes no
+// long message (#28).
+func TestErrors_hiddenAndLong(t *testing.T) {
+	values := []string{}
+	for i := range 10 {
+		values = append(values, fmt.Sprintf("bad%d", i))
+	}
+	values = append(values, " ", strings.Repeat("x", 1001))
+	_, err := tepra.NewPour(tepra.Tape18mm, "c", values, tepra.WithCode(tepra.CodeJAN13))
+	for _, want := range []error{tepra.ErrBadCode, tepra.ErrNoText, tepra.ErrOverLimit} {
+		if !errors.Is(err, want) {
+			t.Errorf("not %v in %v", want, err)
+		}
+	}
+	_, err = tepra.NewPour(tepra.Tape18mm, "c", []string{strings.Repeat("a", 900) + "!"}, tepra.WithCode(tepra.CodeCODE39))
+	if !errors.Is(err, tepra.ErrBadCode) || len(err.Error()) > 300 {
+		t.Errorf("%d bytes: %.300v", len(err.Error()), err)
 	}
 }

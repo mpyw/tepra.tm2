@@ -89,20 +89,35 @@ func newFile(c *optionConfig, docs ...Document) *File {
 // ParseFile reads a .tm2 file from r.
 func ParseFile(r io.Reader) (*File, error) {
 	var f File
-	if err := json.UnmarshalRead(r, &f); err != nil {
-		// An error of the reader comes back as it is, as err.go says.
-		var syntax *jsontext.SyntacticError
-		var semantic *json.SemanticError
-		if errors.As(err, &syntax) || errors.As(err, &semantic) {
-			return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
+	fr := &fileReader{r: r}
+	if err := json.UnmarshalRead(fr, &f); err != nil {
+		// An error of the reader comes back as it is, as err.go says, even
+		// when jsontext wraps it in a SyntacticError, inside a value.
+		if fr.err != nil {
+			return nil, fr.err
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
 	}
 	// null and {} are JSON, but no label: the app writes a document always.
 	if len(f.Documents) == 0 {
 		return nil, fmt.Errorf("%w: no documents", ErrBadFile)
 	}
 	return &f, nil
+}
+
+// fileReader reads r, and keeps its first error other than io.EOF.
+type fileReader struct {
+	r   io.Reader
+	err error
+}
+
+// Read reads r.
+func (fr *fileReader) Read(p []byte) (int, error) {
+	n, err := fr.r.Read(p)
+	if err != nil && !errors.Is(err, io.EOF) && fr.err == nil {
+		fr.err = err
+	}
+	return n, err
 }
 
 // ReadFile reads the .tm2 file at path.

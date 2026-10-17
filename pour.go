@@ -49,6 +49,7 @@ func NewPour(tape Tape, column string, values []string, opts ...PourOption) (*Fi
 		}
 		if n := utf8.RuneCountInString(v); n > PourMaxCellRunes {
 			bad.add(i+1, fmt.Errorf("%w: %d characters; the app takes up to %d", ErrOverLimit, n, PourMaxCellRunes))
+			continue
 		}
 		bad.add(i+1, c.code.checkCode(v))
 	}
