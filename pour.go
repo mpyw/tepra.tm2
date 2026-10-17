@@ -30,29 +30,29 @@ func NewPour(tape Tape, column string, values []string, opts ...PourOption) (*Fi
 	// Every bad option and value is reported at once. Values count from 1,
 	// as rows do in the app.
 	c, err := newPourOptionConfig(opts)
-	errs := []error{err}
 	if len(values) > PourMaxRows {
-		errs = append(errs, fmt.Errorf("%w: %d values to pour; the app takes up to %d", ErrOverLimit, len(values), PourMaxRows))
+		// The values are not checked one by one: the list is the error.
+		return nil, errors.Join(err, fmt.Errorf("%w: %d values to pour; the app takes up to %d", ErrOverLimit, len(values), PourMaxRows))
 	}
+	errs := []error{err}
 	if !utf8.ValidString(column) {
 		errs = append(errs, fmt.Errorf("column title: %w", ErrBadText))
 	}
+	bad := errIndexed{noun: "value"}
 	values = slices.Clone(values)
 	for i, v := range values {
 		v = textLines(v)
 		values[i] = v
 		if err := textCheck(v); err != nil {
-			errs = append(errs, fmt.Errorf("value %d: %w", i+1, err))
+			bad.add(i+1, err)
 			continue
 		}
 		if n := utf8.RuneCountInString(v); n > PourMaxCellRunes {
-			errs = append(errs, fmt.Errorf("%w: value %d has %d characters; the app takes up to %d", ErrOverLimit, i+1, n, PourMaxCellRunes))
+			bad.add(i+1, fmt.Errorf("%w: %d characters; the app takes up to %d", ErrOverLimit, n, PourMaxCellRunes))
 		}
-		if err := c.code.checkCode(v); err != nil {
-			errs = append(errs, fmt.Errorf("value %d: %w", i+1, err))
-		}
+		bad.add(i+1, c.code.checkCode(v))
 	}
-	if err := errors.Join(errs...); err != nil {
+	if err := errors.Join(append(errs, bad.err())...); err != nil {
 		return nil, err
 	}
 
