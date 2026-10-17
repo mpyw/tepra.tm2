@@ -107,3 +107,29 @@ func TestLayout_tooLong(t *testing.T) {
 		t.Errorf("100 characters: %v", err)
 	}
 }
+
+// An error on many values or pages is reported once, and the message stays
+// short however long the list is (#18).
+func TestErrors_bounded(t *testing.T) {
+	_, err := tepra.NewPour(tepra.Tape18mm, "c", make([]string, 100000))
+	if !errors.Is(err, tepra.ErrOverLimit) || len(err.Error()) > 200 {
+		t.Errorf("100000 values: %d bytes: %.200v", len(err.Error()), err)
+	}
+	_, err = tepra.NewPour(tepra.Tape18mm, "c", make([]string, 1000))
+	if !errors.Is(err, tepra.ErrNoText) || err.Error() != "values 1, 2, 3, 4, 5 and 995 more: tepra: no text" {
+		t.Errorf("1000 empty values: %v", err)
+	}
+	_, err = tepra.NewPages(tepra.Tape18mm, make([]string, 1000))
+	if !errors.Is(err, tepra.ErrNoText) || strings.Count(err.Error(), "\n") != 0 {
+		t.Errorf("1000 empty pages: %v", err)
+	}
+	// Many different errors: the first ten, then a count.
+	values := make([]string, 30)
+	for i := range values {
+		values[i] = strings.Repeat("1", i+1)
+	}
+	_, err = tepra.NewPour(tepra.Tape18mm, "c", values, tepra.WithCode(tepra.CodeJAN13))
+	if !errors.Is(err, tepra.ErrBadCode) || !strings.HasSuffix(err.Error(), "and 19 more errors") || strings.Count(err.Error(), "\n") != 10 {
+		t.Errorf("29 bad codes: %v", err)
+	}
+}

@@ -1,6 +1,11 @@
 package tepra
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 // The errors of this package. Each error it returns wraps one or more of
 // these, to test with errors.Is. Errors of the file system, and of a reader
@@ -35,3 +40,70 @@ var (
 	// for.
 	ErrBadCode = errors.New("tepra: bad value for a code")
 )
+
+// errIndexed collects the errors of the items of a list, numbered from 1,
+// by message: the options often make one error on many items, reported
+// once with the items it is on. The message is bounded however long the
+// list is.
+//
+//declscope:shared // pages.go and pour.go check their lists with it
+type errIndexed struct {
+	noun string // what an item is called, such as "page"
+	// errs are the errors, each once, and items the items of each.
+	//
+	//declscope:private
+	errs []error
+	//declscope:private
+	items [][]int
+}
+
+// The most errIndexed lists: of the items of one error, and of errors.
+const (
+	errIndexedItems = 5
+	errIndexedErrs  = 10
+)
+
+// add records err, if any, of item.
+//
+//declscope:shared // pages.go and pour.go record each item's error
+func (e *errIndexed) add(item int, err error) {
+	if err == nil {
+		return
+	}
+	for i, prev := range e.errs {
+		if prev.Error() == err.Error() {
+			e.items[i] = append(e.items[i], item)
+			return
+		}
+	}
+	e.errs = append(e.errs, err)
+	e.items = append(e.items, []int{item})
+}
+
+// err returns every error, each with its items, or nil.
+//
+//declscope:shared // pages.go and pour.go return what they recorded
+func (e *errIndexed) err() error {
+	var out []error
+	for i, err := range e.errs {
+		if i == errIndexedErrs {
+			out = append(out, fmt.Errorf("and %d more errors", len(e.errs)-i))
+			break
+		}
+		items := e.items[i]
+		names := make([]string, min(len(items), errIndexedItems))
+		for j := range names {
+			names[j] = strconv.Itoa(items[j])
+		}
+		list := strings.Join(names, ", ")
+		if more := len(items) - len(names); more > 0 {
+			list += fmt.Sprintf(" and %d more", more)
+		}
+		noun := e.noun
+		if len(items) > 1 {
+			noun += "s"
+		}
+		out = append(out, fmt.Errorf("%s %s: %w", noun, list, err))
+	}
+	return errors.Join(out...)
+}
