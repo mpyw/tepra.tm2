@@ -127,17 +127,15 @@ func newMCPServer(version string) *mcp.Server {
 
 // mcpPour handles create_pour_labels.
 func mcpPour(_ context.Context, _ *mcp.CallToolRequest, in mcpPourInput) (*mcp.CallToolResult, mcpLabelOutput, error) {
-	// Each bad input is reported at once, the code's too.
 	tape, opts, err := in.mcpOptions()
 	pour, codeErr := labelPourOptions(opts, in.Code)
-	if err := errors.Join(err, codeErr); err != nil {
-		return nil, mcpLabelOutput{}, err
-	}
 	column := in.Column
 	if column == "" {
 		column = "Label"
 	}
-	f, err := tepra.NewPour(tape, column, in.Labels, pour...)
+	f, err := labelBuild(tape, errors.Join(err, codeErr), func() (*tepra.File, error) {
+		return tepra.NewPour(tape, column, in.Labels, pour...)
+	})
 	if err != nil {
 		return nil, mcpLabelOutput{}, err
 	}
@@ -148,10 +146,9 @@ func mcpPour(_ context.Context, _ *mcp.CallToolRequest, in mcpPourInput) (*mcp.C
 // mcpPages handles create_label_pages.
 func mcpPages(_ context.Context, _ *mcp.CallToolRequest, in mcpPagesInput) (*mcp.CallToolResult, mcpLabelOutput, error) {
 	tape, opts, err := in.mcpOptions()
-	if err != nil {
-		return nil, mcpLabelOutput{}, err
-	}
-	f, err := tepra.NewPages(tape, in.Labels, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
+		return tepra.NewPages(tape, in.Labels, labelTextOptions(opts)...)
+	})
 	if err != nil {
 		return nil, mcpLabelOutput{}, err
 	}
@@ -162,10 +159,9 @@ func mcpPages(_ context.Context, _ *mcp.CallToolRequest, in mcpPagesInput) (*mcp
 // mcpText handles create_text_label.
 func mcpText(_ context.Context, _ *mcp.CallToolRequest, in mcpTextInput) (*mcp.CallToolResult, mcpLabelOutput, error) {
 	tape, opts, err := in.mcpOptions()
-	if err != nil {
-		return nil, mcpLabelOutput{}, err
-	}
-	f, err := tepra.NewText(tape, in.Text, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
+		return tepra.NewText(tape, in.Text, labelTextOptions(opts)...)
+	})
 	if err != nil {
 		return nil, mcpLabelOutput{}, err
 	}

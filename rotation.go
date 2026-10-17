@@ -21,7 +21,7 @@ const (
 // ParseRotation returns the rotation of a name, in degrees clockwise: 0, 90,
 // 180 or 270.
 func ParseRotation(name string) (Rotation, error) {
-	return parseName[Rotation]("rotation", rotationNames, name)
+	return parseName("rotation", rotationNames, name, RotationNone, Rotation90, Rotation180, Rotation270)
 }
 
 // Valid reports whether r is one of the rotations the app opens.

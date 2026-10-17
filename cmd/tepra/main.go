@@ -57,12 +57,16 @@ func mainExitCode(w io.Writer, err error) int {
 	case isExit:
 		msg, code = strings.TrimSpace(err.Error()), exit.ExitCode()
 	case err != nil:
-		// Errors of package tepra start with "tepra: " already.
-		msg, code = strings.TrimPrefix(err.Error(), "tepra: "), 1
+		// Errors of package tepra say "tepra: " already, even when wrapped.
+		msg, code = strings.ReplaceAll(err.Error(), "tepra: ", ""), 1
 	}
-	if msg != "" {
+	if msg == "" {
+		return code
+	}
+	// Errors joined together come a line each.
+	for line := range strings.Lines(msg) {
 		// A failed write to stderr has nowhere to be reported.
-		_, _ = fmt.Fprintf(w, "tepra: %s\n", msg)
+		_, _ = fmt.Fprintf(w, "tepra: %s\n", strings.TrimSuffix(line, "\n"))
 	}
 	return code
 }

@@ -79,7 +79,8 @@ func newPourOptionConfig(opts []PourOption) (*optionConfig, error) {
 }
 
 // newOptionConfig applies opts over the defaults, each with apply, and
-// reports what the app would not take.
+// reports what the app would not take. It returns the config even with an
+// error, so the caller can check its own arguments and report all at once.
 func newOptionConfig[O any](opts []O, apply func(O, *optionConfig)) (*optionConfig, error) {
 	c := &optionConfig{
 		name:           "label",
@@ -101,10 +102,7 @@ func newOptionConfig[O any](opts []O, apply func(O, *optionConfig)) (*optionConf
 	if c.at.IsZero() {
 		c.at = time.Now()
 	}
-	if err := errors.Join(c.errs...); err != nil {
-		return nil, err
-	}
-	return c, nil
+	return c, errors.Join(c.errs...)
 }
 
 // optionError records what is wrong with an option. format may wrap

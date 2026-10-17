@@ -2,6 +2,7 @@ package tepra_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/mpyw/tepra.tm2"
@@ -34,7 +35,9 @@ func TestNewPages_rejects(t *testing.T) {
 	if _, err := tepra.NewPages(tepra.Tape18mm, nil); !errors.Is(err, tepra.ErrNoText) {
 		t.Errorf("no pages: %v, want ErrNoText", err)
 	}
-	if _, err := tepra.NewPages(tepra.Tape18mm, []string{"a", ""}); !errors.Is(err, tepra.ErrNoText) {
-		t.Errorf("empty page: %v, want ErrNoText", err)
+	// Pages count from 1, as in the app, and a bad option comes with them.
+	_, err := tepra.NewPages(tepra.Tape18mm, []string{"a", ""}, tepra.WithMarginMM(0))
+	if !errors.Is(err, tepra.ErrNoText) || !errors.Is(err, tepra.ErrInvalidOptions) || !strings.Contains(err.Error(), "page 2:") {
+		t.Errorf("empty page: %v, want ErrNoText on page 2, and ErrInvalidOptions", err)
 	}
 }

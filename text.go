@@ -1,9 +1,14 @@
 package tepra
 
+import "errors"
+
 // NewText returns a file of one label that prints text. text may hold line
 // breaks ("\n").
 func NewText(tape Tape, text string, opts ...TextOption) (*File, error) {
 	c, err := newTextOptionConfig(opts)
+	if text == "" {
+		err = errors.Join(err, ErrNoText)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -15,12 +20,10 @@ func NewText(tape Tape, text string, opts ...TextOption) (*File, error) {
 }
 
 // newTextDocument lays out a label of text, its font size fitted to it.
+// text is not empty.
 //
 //declscope:shared // pages.go makes each page with it
 func newTextDocument(tape Tape, text string, c *optionConfig) (Document, error) {
-	if text == "" {
-		return Document{}, ErrNoText
-	}
 	l, err := layoutLabel(tape, []string{text}, c)
 	if err != nil {
 		return Document{}, err

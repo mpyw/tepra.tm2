@@ -37,11 +37,9 @@ func textAction(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("text takes one argument, not %d; put line breaks in it, as $'line 1\\nline 2'", cmd.NArg())
 	}
 	tape, opts, err := labelOptions(cmd)
-	if err != nil {
-		return err
-	}
-	text := cmd.Args().First()
-	f, err := tepra.NewText(tape, text, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
+		return tepra.NewText(tape, cmd.Args().First(), labelTextOptions(opts)...)
+	})
 	if err != nil {
 		return err
 	}

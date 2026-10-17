@@ -52,13 +52,11 @@ func pourAction(_ context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	// Each bad flag is reported at once, the code's too.
 	tape, opts, err := labelOptions(cmd)
 	pour, codeErr := labelPourOptions(opts, cmd.String("code"))
-	if err := errors.Join(err, codeErr); err != nil {
-		return err
-	}
-	f, err := tepra.NewPour(tape, cmd.String("column"), values, pour...)
+	f, err := labelBuild(tape, errors.Join(err, codeErr), func() (*tepra.File, error) {
+		return tepra.NewPour(tape, cmd.String("column"), values, pour...)
+	})
 	if err != nil {
 		return err
 	}
