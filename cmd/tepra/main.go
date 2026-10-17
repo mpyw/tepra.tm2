@@ -34,7 +34,7 @@ func main() {
 
 // newMainCommand is the tepra command and its subcommands.
 func newMainCommand() *cli.Command {
-	return &cli.Command{
+	cmd := &cli.Command{
 		Name:    "tepra",
 		Usage:   "make .tm2 label files for TEPRA LINK 2",
 		Version: mainVersion(),
@@ -48,6 +48,15 @@ func newMainCommand() *cli.Command {
 			mcpCommand(),
 		},
 	}
+	// urfave/cli prints a usage error and the help itself, before returning
+	// it. main prints errors, so each command returns it only. Subcommands
+	// do not inherit the handler.
+	quiet := func(_ context.Context, _ *cli.Command, err error, _ bool) error { return err }
+	cmd.OnUsageError = quiet
+	for _, sub := range cmd.Commands {
+		sub.OnUsageError = quiet
+	}
+	return cmd
 }
 
 // mainSentinels are the errors of package tepra. Each says "tepra: ",

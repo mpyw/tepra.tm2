@@ -57,6 +57,18 @@ func labelFlags() []cli.Flag {
 	}
 }
 
+// labelName is the name of the label in the app, of the file at path: its
+// base name without ".tm2", in any case.
+//
+//declscope:shared // mcp.go names its labels with it
+func labelName(path string) string {
+	name := filepath.Base(path)
+	if ext := filepath.Ext(name); strings.EqualFold(ext, ".tm2") {
+		name = strings.TrimSuffix(name, ext)
+	}
+	return name
+}
+
 // labelSettings are the settings of a label as the command line or MCP give
 // them: "" or nil for what is not given, so the label is as the app sets it.
 //
@@ -180,7 +192,7 @@ func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
 		return tepra.Tape{}, nil, err
 	}
 	s := labelSettings{
-		name:      strings.TrimSuffix(filepath.Base(cmd.String("output")), ".tm2"),
+		name:      labelName(cmd.String("output")),
 		fill:      cmd.String("fill"),
 		align:     cmd.String("align"),
 		valign:    cmd.String("valign"),
