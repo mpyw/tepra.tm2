@@ -286,3 +286,19 @@ func mcpResultText(res *mcp.CallToolResult) string {
 	}
 	return strings.Join(parts, "\n")
 }
+
+// inspect_label on a file with rows but no column titles answers, and the
+// server lives on (#4).
+func TestMCP_inspectRowsWithoutTitles(t *testing.T) {
+	session := mcpConnect(t)
+	path := filepath.Join(t.TempDir(), "x.tm2")
+	if err := os.WriteFile(path, []byte(`{"documents":[{"drawers":[]}],"currentPage":0,"tableData":[["a"]]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		res := mcpCallResult(t, session, "inspect_label", map[string]any{"path": path})
+		if res.IsError || !strings.Contains(mcpResultText(res), "rows:    1") {
+			t.Errorf("result %s", mcpResultText(res))
+		}
+	}
+}

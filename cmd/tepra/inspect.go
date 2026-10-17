@@ -62,7 +62,12 @@ func inspectFile(f *tepra.File) string {
 		}
 	}
 	if len(f.TableData) > 0 {
-		lines = append(lines, fmt.Sprintf("rows:    %d, column %q", len(f.TableData), f.TableHeader[0]))
+		// A file need not name its columns.
+		var column string
+		if len(f.TableHeader) > 0 {
+			column = f.TableHeader[0]
+		}
+		lines = append(lines, fmt.Sprintf("rows:    %d, column %q", len(f.TableData), column))
 		for i, row := range f.TableData {
 			// A value may be split into a column per line.
 			var cells []string
