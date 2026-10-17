@@ -86,7 +86,16 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 	case CodeText:
 		size, width = layoutText(texts, height, c.fontSize, sideways)
 		if size <= 0 {
-			return labelLayout{}, fmt.Errorf("%w: padding %v mm leaves no room for text on %d mm tape", ErrNoRoom, padMM, tape.WidthMM)
+			// Too many lines, or with the lines across the tape, a line too
+			// long for its width. The padding may be what takes the room.
+			cause := "too many lines"
+			if sideways {
+				cause = "a line too long to run across it"
+			}
+			if pad > 0 {
+				cause += fmt.Sprintf(", with padding of %v mm", padMM)
+			}
+			return labelLayout{}, fmt.Errorf("%w: %s for %d mm tape", ErrNoRoom, cause, tape.WidthMM)
 		}
 	case CodeQR:
 		size, width = layoutCodeFontSize, height
@@ -125,7 +134,7 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 	}
 	// A fixed length is checked by WithLengthMM. One of what is on the
 	// label is checked here, before a background is made that long.
-	if mm := PointsToMM(length) + 2*c.marginMM; mm > layoutMaxLengthMM {
+	if mm := PointsToMM(length) + 2*c.marginMM; c.lengthMM == 0 && mm > layoutMaxLengthMM {
 		return labelLayout{}, fmt.Errorf("%w: a label of %.0f mm; the app takes up to %d mm", ErrOverLimit, mm, layoutMaxLengthMM)
 	}
 	x := pad + iconWidth
