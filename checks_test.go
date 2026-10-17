@@ -190,3 +190,35 @@ func TestDrawers_noBase(t *testing.T) {
 		t.Errorf("%v, want ErrBadFile", err)
 	}
 }
+
+// The longest fixed length is taken, whatever the margins (#27).
+func TestLengthMM_longestWithAnyMargin(t *testing.T) {
+	for _, margin := range []float64{1, 3, 7, 13, 499} {
+		if _, err := tepra.NewText(tepra.Tape18mm, "a", tepra.WithLengthMM(3000), tepra.WithMarginMM(margin)); err != nil {
+			t.Errorf("margin %v: %v", margin, err)
+		}
+	}
+}
+
+// No room for text says why: the lines, the padding, or both (#27).
+func TestLayout_noRoomSaysWhy(t *testing.T) {
+	tests := []struct {
+		text string
+		opts []tepra.TextOption
+		want string
+	}{
+		{strings.Repeat("a\n", 70) + "a", nil, "too many lines for 18 mm tape"},
+		{strings.Repeat("あ", 20), []tepra.TextOption{tepra.WithRotation(tepra.Rotation90)}, "a line too long to run across it for 4 mm tape"},
+		{"a\nb", []tepra.TextOption{tepra.WithBorder(tepra.BorderBox)}, "too many lines, with padding of 1.5 mm for 4 mm tape"},
+	}
+	for _, tt := range tests {
+		tape := tepra.Tape18mm
+		if strings.Contains(tt.want, "4 mm") {
+			tape = tepra.Tape4mm
+		}
+		_, err := tepra.NewText(tape, tt.text, tt.opts...)
+		if !errors.Is(err, tepra.ErrNoRoom) || !strings.HasSuffix(err.Error(), tt.want) {
+			t.Errorf("%v, want ErrNoRoom: ...%s", err, tt.want)
+		}
+	}
+}
