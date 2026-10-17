@@ -123,3 +123,20 @@ func TestNewPour_rejects(t *testing.T) {
 		}
 	}
 }
+
+func TestNewPour_reportsEveryError(t *testing.T) {
+	// A bad option, and two bad values counted from 1, as rows are.
+	_, err := tepra.NewPour(tepra.Tape18mm, "c", []string{"123", "123456789012", "x"},
+		tepra.WithCode(tepra.CodeJAN13), tepra.WithMarginMM(0))
+	if !errors.Is(err, tepra.ErrInvalidOptions) || !errors.Is(err, tepra.ErrBadCode) {
+		t.Fatalf("%v, want ErrInvalidOptions and ErrBadCode", err)
+	}
+	for _, want := range []string{"margin", "value 1:", "value 3:"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("%v, want %q in it", err, want)
+		}
+	}
+	if strings.Contains(err.Error(), "value 2:") {
+		t.Errorf("%v: value 2 is good", err)
+	}
+}

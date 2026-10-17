@@ -268,6 +268,7 @@ func TestMainExitCode(t *testing.T) {
 		{errors.New("pour takes one file at most"), 1, "tepra: pour takes one file at most\n"},
 		{cli.Exit("quiet", 3), 3, "tepra: quiet\n"},
 		{cli.Exit("", 4), 4, ""},
+		{errors.Join(errors.New("tepra: bad option"), errors.New("value 1: tepra: bad value")), 1, "tepra: bad option\ntepra: value 1: bad value\n"},
 	}
 	for _, tt := range tests {
 		var w bytes.Buffer

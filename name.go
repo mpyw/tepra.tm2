@@ -7,13 +7,21 @@ import (
 )
 
 // parseName returns the value whose name is name, of names indexed by
-// value. kind names what is parsed, for the error.
+// value. kind names what is parsed, for the error. The error lists the
+// names in order, or in the order of the values of order when given.
 //
 //declscope:shared // fill.go, border.go and align.go parse names with it
-func parseName[T ~int](kind string, names []string, name string) (T, error) {
+func parseName[T ~int](kind string, names []string, name string, order ...T) (T, error) {
 	i := slices.Index(names, name)
 	if i < 0 {
-		return 0, fmt.Errorf("%w: %s %q; known: %s", ErrUnknownName, kind, name, strings.Join(names, ", "))
+		known := names
+		if order != nil {
+			known = make([]string, len(order))
+			for j, v := range order {
+				known[j] = names[v]
+			}
+		}
+		return 0, fmt.Errorf("%w: %s %q; known: %s", ErrUnknownName, kind, name, strings.Join(known, ", "))
 	}
 	return T(i), nil
 }

@@ -200,6 +200,22 @@ func TestMCP_rejects(t *testing.T) {
 	}
 }
 
+func TestMCP_reportsEveryError(t *testing.T) {
+	// A bad name, which the tool reads, and a bad value, which the package
+	// checks, come back together.
+	session := mcpConnect(t)
+	res := mcpCallResult(t, session, "create_pour_labels", map[string]any{
+		"path":   filepath.Join(t.TempDir(), "x.tm2"),
+		"labels": []string{"123"},
+		"code":   "jan13",
+		"rotate": "45",
+	})
+	text := mcpResultText(res)
+	if !res.IsError || !strings.Contains(text, "rotation \"45\"") || !strings.Contains(text, "value 1:") {
+		t.Errorf("result %s, want both errors", text)
+	}
+}
+
 func TestMCP_inspectLabel(t *testing.T) {
 	session := mcpConnect(t)
 	path, err := filepath.Abs(filepath.Join("..", "..", "testdata", "pour-18mm.tm2"))

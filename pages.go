@@ -1,6 +1,9 @@
 package tepra
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // NewPages returns a file of one page per text, each laid out as NewText
 // lays out its label. So each label has a font size and a length of its
@@ -11,14 +14,21 @@ func NewPages(tape Tape, texts []string, opts ...TextOption) (*File, error) {
 		return nil, fmt.Errorf("%w: no pages", ErrNoText)
 	}
 	c, err := newTextOptionConfig(opts)
-	if err != nil {
+	errs := []error{err}
+	for i, text := range texts {
+		if text == "" {
+			errs = append(errs, fmt.Errorf("page %d: %w", i+1, ErrNoText))
+		}
+	}
+	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 	docs := make([]Document, len(texts))
 	for i, text := range texts {
 		doc, err := newTextDocument(tape, text, c)
 		if err != nil {
-			return nil, fmt.Errorf("page %d: %w", i, err)
+			// The options make the same error on every page: one is enough.
+			return nil, fmt.Errorf("page %d: %w", i+1, err)
 		}
 		// Without it the app opens the first page alone, as a label of one
 		// page.

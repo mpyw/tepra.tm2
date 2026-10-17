@@ -1,6 +1,7 @@
 package tepra
 
 import (
+	"errors"
 	"fmt"
 	"unicode/utf8"
 )
@@ -25,20 +26,23 @@ func NewPour(tape Tape, column string, values []string, opts ...PourOption) (*Fi
 	if len(values) == 0 {
 		return nil, fmt.Errorf("%w: no values to pour", ErrNoText)
 	}
+	// Every bad option and value is reported at once. Values count from 1,
+	// as rows do in the app.
 	c, err := newPourOptionConfig(opts)
-	if err != nil {
-		return nil, err
-	}
+	errs := []error{err}
 	if len(values) > PourMaxRows {
-		return nil, fmt.Errorf("%w: %d values to pour; the app takes up to %d", ErrOverLimit, len(values), PourMaxRows)
+		errs = append(errs, fmt.Errorf("%w: %d values to pour; the app takes up to %d", ErrOverLimit, len(values), PourMaxRows))
 	}
 	for i, v := range values {
 		if n := utf8.RuneCountInString(v); n > PourMaxCellRunes {
-			return nil, fmt.Errorf("%w: value %d has %d characters; the app takes up to %d", ErrOverLimit, i, n, PourMaxCellRunes)
+			errs = append(errs, fmt.Errorf("%w: value %d has %d characters; the app takes up to %d", ErrOverLimit, i+1, n, PourMaxCellRunes))
 		}
 		if err := c.code.checkCode(v); err != nil {
-			return nil, fmt.Errorf("value %d: %w", i, err)
+			errs = append(errs, fmt.Errorf("value %d: %w", i+1, err))
 		}
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
 	}
 
 	l, err := layoutLabel(tape, values, c)

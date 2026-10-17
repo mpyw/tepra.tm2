@@ -35,10 +35,9 @@ func pagesAction(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 	tape, opts, err := labelOptions(cmd)
-	if err != nil {
-		return err
-	}
-	f, err := tepra.NewPages(tape, values, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
+		return tepra.NewPages(tape, values, labelTextOptions(opts)...)
+	})
 	if err != nil {
 		return err
 	}

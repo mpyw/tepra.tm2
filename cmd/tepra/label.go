@@ -210,6 +210,23 @@ func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
 	return tape, opts, err
 }
 
+// labelBuild makes a file with build. err is what reading the options
+// found: build still runs, so the errors of the values come with it, all
+// at once. It does not run without a tape, which a bad tape width or an
+// unreadable picture leaves.
+//
+//declscope:shared // the commands and the MCP tools make their files with it
+func labelBuild(tape tepra.Tape, err error, build func() (*tepra.File, error)) (*tepra.File, error) {
+	if tape.WidthMM == 0 {
+		return nil, err
+	}
+	f, buildErr := build()
+	if err := errors.Join(err, buildErr); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
 // labelReadPicture reads the picture at path. An empty path is no picture.
 //
 //declscope:shared // mcp.go reads the pictures of its tools with it
