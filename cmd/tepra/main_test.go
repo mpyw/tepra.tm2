@@ -408,3 +408,64 @@ func TestMainVersion_release(t *testing.T) {
 		t.Errorf("mainVersion() = %q", got)
 	}
 }
+
+// A file that cannot be encoded writes nothing, and leaves an old file as
+// it was (#3).
+func TestWriteLabel_failedWriteKeepsTheOldFile(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "x.tm2")
+	if _, err := runMain(t, "", "text", "-o", out, "good"); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad, err := tepra.NewText(tepra.Tape18mm, "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad.CurrentPage = 1 // the app crashes on it, so it is not encoded
+	if err := writeLabel(out, bad, true, "--force"); !errors.Is(err, tepra.ErrCrashesApp) {
+		t.Fatalf("%v, want ErrCrashesApp", err)
+	}
+	if after, _ := os.ReadFile(out); !bytes.Equal(after, before) {
+		t.Error("the old file changed")
+	}
+	fresh := filepath.Join(filepath.Dir(out), "fresh.tm2")
+	if err := writeLabel(fresh, bad, false, "--force"); err == nil {
+		t.Fatal("no error")
+	}
+	if _, err := os.Stat(fresh); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("a file was left: %v", err)
+	}
+	entries, err := os.ReadDir(filepath.Dir(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("%d files in the folder, want only x.tm2", len(entries))
+	}
+}
+
+func TestWriteLabel_replaces(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "x.tm2")
+	for _, text := range []string{"one", "two"} {
+		if _, err := runMain(t, "", "text", "-f", "-o", out, text); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f, err := tepra.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := f.TextWords; got != "two" {
+		t.Errorf("text %q, want two", got)
+	}
+	info, err := os.Stat(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o644 {
+		t.Errorf("mode %v, want 0644", info.Mode().Perm())
+	}
+}
