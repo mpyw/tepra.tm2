@@ -87,7 +87,7 @@ func (e *errIndexed) err() error {
 	var out []error
 	for i, err := range e.errs {
 		if i == errIndexedErrs {
-			out = append(out, fmt.Errorf("and %d more errors", len(e.errs)-i))
+			out = append(out, errMore(e.errs[i:]))
 			break
 		}
 		items := e.items[i]
@@ -107,3 +107,13 @@ func (e *errIndexed) err() error {
 	}
 	return errors.Join(out...)
 }
+
+// errMore stands for errors not listed, by their count. It wraps them, so
+// errors.Is still finds their sentinels.
+type errMore []error
+
+// Error says how many errors are not listed.
+func (e errMore) Error() string { return fmt.Sprintf("and %d more errors", len(e)) }
+
+// Unwrap returns the errors not listed.
+func (e errMore) Unwrap() []error { return e }

@@ -3,6 +3,7 @@ package tepra
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // CodeKind is what a PourDrawer shows its column as: text, or a code made of
@@ -54,7 +55,7 @@ func (k CodeKind) checkCode(value string) error {
 		bad = len(value) != 12 || strings.Trim(value, "0123456789") != ""
 	}
 	if bad {
-		return fmt.Errorf("%w: %q as %v; %s", ErrBadCode, value, k, codeRules[k])
+		return fmt.Errorf("%w: %q as %v; %s", ErrBadCode, codeShort(value), k, codeRules[k])
 	}
 	return nil
 }
@@ -77,4 +78,14 @@ var codeKindNames = []string{
 	CodeCODE39:  "code39",
 	CodeCODE128: "code128",
 	CodeJAN13:   "jan13",
+}
+
+// codeShort is value for a message: its first 40 characters, and "…" when
+// it has more.
+func codeShort(value string) string {
+	const most = 40
+	if utf8.RuneCountInString(value) <= most {
+		return value
+	}
+	return string([]rune(value)[:most]) + "…"
 }
