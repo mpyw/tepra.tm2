@@ -1,0 +1,6 @@
+# Line endings stay LF on every checkout, Windows too: tests compare the
+# bytes of files in testdata.
+* text=auto eol=lf
+
+# A .tm2 file is one line of JSON that TEPRA LINK 2 wrote. It stays as it is.
+*.tm2 -text

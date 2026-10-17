@@ -1,0 +1,157 @@
+package tepra_test
+
+import (
+	"bytes"
+	jsonv1 "encoding/json"
+	"encoding/json/v2"
+	"errors"
+	"fmt"
+	"path/filepath"
+	"testing"
+
+	"github.com/mpyw/tepra.tm2"
+)
+
+func TestReadFile_writesBackWhatTheAppWrote(t *testing.T) {
+	paths, err := filepath.Glob("testdata/*.tm2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range paths {
+		want := readFixture(t, path)
+		f, err := tepra.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var buf bytes.Buffer
+		if _, err := f.WriteTo(&buf); err != nil {
+			t.Fatal(err)
+		}
+		if bytes.ContainsRune(buf.Bytes(), '\n') {
+			t.Errorf("%s: written file has more than one line", path)
+		}
+		if err := fileCompareJSON(decodeFixture(t, want), decodeFixture(t, buf.Bytes()), "$"); err != "" {
+			t.Errorf("%s: %s", path, err)
+		}
+	}
+}
+
+func TestReadFile_readsTheFixture(t *testing.T) {
+	f, err := tepra.ReadFile(fixturePourPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Documents) != 1 {
+		t.Fatalf("got %d documents, want 1", len(f.Documents))
+	}
+	doc := f.Documents[0]
+	if !doc.PourMode || doc.TapeWidthMM != 18 {
+		t.Errorf("PourMode %v, TapeWidthMM %d; want true, 18", doc.PourMode, doc.TapeWidthMM)
+	}
+	pour, ok := doc.Drawers[1].(*tepra.PourDrawer)
+	if !ok {
+		t.Fatalf("drawer 1 is %T, want *tepra.PourDrawer", doc.Drawers[1])
+	}
+	if pour.Identifier != "1a87ff22-bb84-4ac5-9e28-d451bc3011ae" || pour.FontSize != 17.5 {
+		t.Errorf("pour drawer: identifier %q, font size %v", pour.Identifier, pour.FontSize)
+	}
+	if got, want := len(f.TableData), 10; got != want {
+		t.Errorf("got %d rows, want %d", got, want)
+	}
+	if f.SavedLength == nil || *f.SavedLength-doc.LengthMM() > 1e-4 || doc.LengthMM()-*f.SavedLength > 1e-4 {
+		t.Errorf("savedLength %v, but the document is %v mm", f.SavedLength, doc.LengthMM())
+	}
+}
+
+func TestFile_WriteFile(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "a<b>&c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "out.tm2")
+	if err := f.WriteFile(path); err != nil {
+		t.Fatal(err)
+	}
+	b := readFixture(t, path)
+	// The app writes <, > and & as they are.
+	if !bytes.Contains(b, []byte(`"TIText":"a<b>&c"`)) {
+		t.Errorf("text escaped in %s", b)
+	}
+	got, err := tepra.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fixtureAs[*tepra.TextDrawer](t, got.Documents[0].Drawers[0]).Text != "a<b>&c" {
+		t.Error("text not read back")
+	}
+}
+
+func TestParseFile_rejectsBadJSON(t *testing.T) {
+	for _, in := range []string{`{`, `{"documents":[{"drawers":[1]}]}`} {
+		if _, err := tepra.ParseFile(bytes.NewReader([]byte(in))); err == nil {
+			t.Errorf("ParseFile(%s): no error", in)
+		}
+	}
+}
+
+// fileCompareJSON returns where want and got differ, or "". Keys may come in
+// another order. decodeFixture made numbers float64, so 0.0 equals 0.
+func fileCompareJSON(want, got any, path string) string {
+	switch w := want.(type) {
+	case *fixtureObject:
+		g, ok := got.(*fixtureObject)
+		if !ok {
+			return path + ": not an object"
+		}
+		if !fixtureSameKeys(w.keys, g.keys) {
+			return path + ": keys differ:\nwant " + fileQuote(w.keys) + "\ngot  " + fileQuote(g.keys)
+		}
+		for _, k := range w.keys {
+			if d := fileCompareJSON(w.values[k], g.values[k], path+"."+k); d != "" {
+				return d
+			}
+		}
+	case []any:
+		g, ok := got.([]any)
+		if !ok || len(g) != len(w) {
+			return path + ": arrays differ in length"
+		}
+		for i := range w {
+			if d := fileCompareJSON(w[i], g[i], path+"[]"); d != "" {
+				return d
+			}
+		}
+	case float64:
+		if g, ok := got.(float64); !ok || w != g {
+			return fmt.Sprintf("%s: numbers differ: %v and %v", path, want, got)
+		}
+	default:
+		if want != got {
+			return path + ": values differ"
+		}
+	}
+	return ""
+}
+
+// fileQuote writes keys as JSON, for a message.
+func fileQuote(keys []string) string {
+	b, _ := json.Marshal(keys) // strings always marshal
+	return string(b)
+}
+
+func TestFile_rejectsPagesTheAppCrashesOn(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, page := range []int{1, -1} {
+		f.CurrentPage = page
+		var buf bytes.Buffer
+		if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrCrashesApp) {
+			t.Errorf("page %d: %v, want ErrCrashesApp", page, err)
+		}
+		if _, err := jsonv1.Marshal(f); err == nil {
+			t.Errorf("page %d, encoding/json: no error", page)
+		}
+	}
+}

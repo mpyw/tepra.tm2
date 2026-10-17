@@ -1,0 +1,9 @@
+# Local builds
+/dist/
+/tepra
+
+# IDE
+/.idea/
+
+# Coverage profile
+/coverage.txt

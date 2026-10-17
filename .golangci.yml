@@ -1,0 +1,50 @@
+version: "2"
+
+# depguard keeps each package to the layer it belongs to. Every rule is an
+# allow list (strict): an import outside it is reported. Rules whose files
+# match all apply, so a file must pass each of them.
+linters:
+  default: standard
+  enable:
+    - depguard
+  settings:
+    # Every error is checked, or dropped with _ = and a reason. None of the
+    # default exclusions, such as Close and fmt.Fprint*, apply.
+    errcheck:
+      check-type-assertions: true
+      disable-default-exclusions: true
+    depguard:
+      rules:
+        everywhere:
+          files:
+            - $all
+          deny:
+            - pkg: io/ioutil
+              desc: deprecated; use io and os
+
+        # Package tepra: the .tm2 format. It knows nothing of the CLI or MCP,
+        # and does not log.
+        core:
+          list-mode: strict
+          files:
+            - $all
+            - "!**/cmd/**"
+          allow:
+            - $gostd
+            - github.com/mpyw/tepra.tm2$
+          deny:
+            - pkg: log
+              desc: return the error
+            - pkg: log/slog
+              desc: return the error
+
+        # The command wires package tepra to the command line and MCP.
+        cmd:
+          list-mode: strict
+          files:
+            - "**/cmd/tepra/*.go"
+          allow:
+            - $gostd
+            - github.com/urfave/cli/v3
+            - github.com/modelcontextprotocol/go-sdk/mcp$
+            - github.com/mpyw/tepra.tm2$
