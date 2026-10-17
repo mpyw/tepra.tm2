@@ -550,3 +550,22 @@ func TestHelp_defaults(t *testing.T) {
 		t.Errorf("help says (default: 0):\n%s", stdout)
 	}
 }
+
+// Blanks at the end of a line inside a quoted value stay (#29).
+func TestPour_csvBlanksInsideQuotes(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "x.tm2")
+	if _, err := runMain(t, "\"a  \nb\"  \n\"c\t\n\td\"\n\"e \"\"x\"\"  \nf\"\n", "pour", "-o", out); err != nil {
+		t.Fatal(err)
+	}
+	f, err := tepra.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, row := range f.TableData {
+		got = append(got, row[0])
+	}
+	if want := []string{"a  \nb", "c\t\n\td", "e \"x\"  \nf"}; strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("values %q, want %q", got, want)
+	}
+}

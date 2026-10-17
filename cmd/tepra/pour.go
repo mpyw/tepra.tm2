@@ -105,11 +105,7 @@ func readPourValues(r io.Reader) ([]string, error) {
 	// Spaces around a quoted value are taken, as around any other. The CSV
 	// stays strict otherwise: with LazyQuotes, a quote left open would take
 	// every row after it into one value, and nobody would notice.
-	lines := bytes.Split(b, []byte("\n"))
-	for i, line := range lines {
-		lines[i] = bytes.TrimRight(line, " \t")
-	}
-	cr := csv.NewReader(bytes.NewReader(bytes.Join(lines, []byte("\n"))))
+	cr := csv.NewReader(bytes.NewReader(pourTrimRowEnds(b)))
 	cr.TrimLeadingSpace = true
 	cr.FieldsPerRecord = 1
 	var values []string
@@ -128,6 +124,24 @@ func readPourValues(r io.Reader) ([]string, error) {
 			values = append(values, v)
 		}
 	}
+}
+
+// pourTrimRowEnds drops the spaces and tabs at the end of each row of b, so
+// encoding/csv takes blanks after a closing quote. A line that ends inside
+// quotes ends inside a value, whose blanks stay. A quote doubled in a value
+// turns the state twice, so counting quotes is enough.
+func pourTrimRowEnds(b []byte) []byte {
+	lines := bytes.Split(b, []byte("\n"))
+	quoted := false
+	for i, line := range lines {
+		if bytes.Count(line, []byte(`"`))%2 == 1 {
+			quoted = !quoted
+		}
+		if !quoted {
+			lines[i] = bytes.TrimRight(line, " \t")
+		}
+	}
+	return bytes.Join(lines, []byte("\n"))
 }
 
 // pourBOM is the UTF-8 byte order mark.
