@@ -222,3 +222,25 @@ func TestReadFile_keepsUnknownKeys(t *testing.T) {
 		t.Errorf(`"" %d times, want 2`, got)
 	}
 }
+
+// A document that is null or {} is no label (#31).
+func TestParseFile_emptyDocuments(t *testing.T) {
+	for _, in := range []string{`{"documents":[null]}`, `{"documents":[{}]}`, `{"documents":[{"SettingsTapeWidth":18},{}]}`} {
+		if _, err := tepra.ParseFile(strings.NewReader(in)); !errors.Is(err, tepra.ErrBadFile) {
+			t.Errorf("ParseFile(%s): %v, want ErrBadFile", in, err)
+		}
+	}
+}
+
+// A drawer of an unknown type is kept, whatever its keys hold (#31).
+func TestParseFile_unknownDrawerWithOddKeys(t *testing.T) {
+	in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[{"type":"shape","identifier":"id","frame":"x"}]}]}`
+	f, err := tepra.ParseFile(strings.NewReader(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0])
+	if r.Type != "shape" || r.Identifier != "id" || !strings.Contains(string(r.JSON), `"frame":"x"`) {
+		t.Errorf("%+v", r)
+	}
+}

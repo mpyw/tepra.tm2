@@ -292,7 +292,7 @@ func mcpResultText(res *mcp.CallToolResult) string {
 func TestMCP_inspectRowsWithoutTitles(t *testing.T) {
 	session := mcpConnect(t)
 	path := filepath.Join(t.TempDir(), "x.tm2")
-	if err := os.WriteFile(path, []byte(`{"documents":[{"drawers":[]}],"currentPage":0,"tableData":[["a"]]}`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"documents":[{"SettingsTapeWidth":18,"drawers":[]}],"currentPage":0,"tableData":[["a"]]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {

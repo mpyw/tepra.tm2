@@ -98,9 +98,15 @@ func ParseFile(r io.Reader) (*File, error) {
 		}
 		return nil, fmt.Errorf("%w: %w", ErrBadFile, err)
 	}
-	// null and {} are JSON, but no label: the app writes a document always.
+	// null and {} are JSON, but no label: the app writes a document always,
+	// and a tape width in each.
 	if len(f.Documents) == 0 {
 		return nil, fmt.Errorf("%w: no documents", ErrBadFile)
+	}
+	for i, doc := range f.Documents {
+		if doc.TapeWidthMM <= 0 {
+			return nil, fmt.Errorf("%w: document %d has no tape width", ErrBadFile, i+1)
+		}
 	}
 	return &f, nil
 }
