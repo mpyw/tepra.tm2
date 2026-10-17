@@ -469,3 +469,18 @@ func TestWriteLabel_replaces(t *testing.T) {
 		t.Errorf("mode %v, want 0644", info.Mode().Perm())
 	}
 }
+
+// A file with rows but no column titles is described, not a panic (#4).
+func TestInspect_rowsWithoutTitles(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "x.tm2")
+	if err := os.WriteFile(path, []byte(`{"documents":[{"drawers":[]}],"currentPage":0,"tableData":[["a"]]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stdout, err := runMain(t, "", "inspect", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, "rows:    1, column \"\"\n") || !strings.Contains(stdout, "    1  a\n") {
+		t.Errorf("stdout\n%s", stdout)
+	}
+}
