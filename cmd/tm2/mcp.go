@@ -30,7 +30,8 @@ const mcpInstructions = "Make, read and change .tm2 label files for KING JIM's T
 	"The tools write a file; they do not print. " +
 	"To change a file, read it with inspect_label and full, then edit it with edit_label. " +
 	"The user opens the file in TEPRA LINK 2 (on a phone, through the OS's share sheet) and prints from there. " +
-	`Use "\n" in a label for a line break.`
+	`Use "\n" in a label for a line break. ` +
+	"For two or more labels, use create_label_pages; use create_pour_labels only for QR codes and barcodes."
 
 // errMCPRelativePath is a path that is not absolute. The server's working
 // directory is not the client's, so a relative path would point elsewhere.
@@ -117,13 +118,15 @@ func newMCPServer(version string) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "create_pour_labels",
 		Description: "Write a .tm2 file that prints one label per string, through the app's pour (流し込み) form. " +
-			"Use it for two or more labels of the same kind. The labels share one frame, sized for the longest.",
+			"Use it for QR codes and barcodes; for other lists, use create_label_pages. " +
+			"The labels share one frame, sized for the longest. The app shows the text at the left of that frame, whatever align says, " +
+			"and inverted fill only behind the letters.",
 	}, mcpPour)
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "create_label_pages",
 		Description: "Write a .tm2 file that prints one label per string, each on a page of its own. " +
 			"Each label gets the font size and length that fit it, as create_text_label makes it. " +
-			"Use it for labels that differ in length or in how many lines they have. The app prints the pages together.",
+			"Use it for any list of two or more text labels. With length_mm, every label is as long. The app prints the pages together.",
 	}, mcpPages)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_text_label",
@@ -153,6 +156,8 @@ const mcpEditDescription = "Change a .tm2 file by a JSON Patch (RFC 6902) on the
 	"A text box shows its text once it has some (hasPlaceholder is cleared). " +
 	"Nothing is laid out again: set frame (x, y, width, height in points, 1 mm = 2.835 points) yourself. " +
 	"A text box fits its text to its frame unless sizePriority is set. " +
+	"A border is an empty text drawer of its own, around the text: add one with BIType set. " +
+	"BIType on a pour drawer shows no border, and on a text drawer with text it draws a line that touches the text. " +
 	"Values: TIAlignment 0 left, 1 center, 2 right; TIVerticalAlignment 0 top, 1 middle, 2 bottom; " +
 	"TIFillMode 0 none, 1 inverted, 2 shaded; Rotate 0 none, 1 180°, 2 270°, 3 90°; " +
 	"BIType 0 none, 1 box, 2 rounded, 3 top-bottom, 4 top, 5 bottom; " +

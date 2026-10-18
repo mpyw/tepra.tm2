@@ -131,7 +131,9 @@ return f.WriteFile("items.tm2")
 
 > [!TIP]
 > For a list of things to label, use pages. Each label gets the size that fits it.
-> Use pour for labels that must look alike, and for codes.
+> Give a length, and every label is as long.
+> Use pour only for QR codes and barcodes, or to edit the labels as one table in the app.
+> Pour lays text out less well: see [Layout](#layout).
 
 ### Tapes
 
@@ -153,7 +155,16 @@ Size and length:
 What you see when you edit the label in the app:
 
 - A border is an empty box of its own, around the text.
+  A border set on a pour drawer itself (`BIType`) does not show.
 - Inverted text of more than one line is a box per line. In a pour file, each line is a column of its own: `Label`, `Label 2` and on.
+
+What pour cannot do:
+
+- The text sits at the left of its frame. The app ignores the alignment of a pour drawer.
+- Inverted text is black only behind the letters, not over the whole frame.
+- The text keeps its font size, and its width is an estimate. Bold text and wide letters, such as `w` and `m`, can run past the frame.
+
+Pages with a length have none of these limits.
 
 > [!NOTE]
 > On 4 mm tape, a border's padding of 1.5 mm leaves no room for text.
