@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/urfave/cli/v3"
@@ -189,7 +188,7 @@ func (s mcpLabelStyle) mcpOptions() (tepra.Tape, []tepra.Option, error) {
 	if !filepath.IsAbs(s.Path) {
 		return tepra.Tape{}, nil, fmt.Errorf("%w: %s", errMCPRelativePath, s.Path)
 	}
-	if name := filepath.Base(s.Path); !strings.HasSuffix(name, ".tm2") || name == ".tm2" {
+	if !labelIsTM2(s.Path) {
 		return tepra.Tape{}, nil, fmt.Errorf("%w: %s", errMCPNotTM2, s.Path)
 	}
 	width := s.TapeWidthMM

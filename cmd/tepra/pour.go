@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/urfave/cli/v3"
@@ -126,7 +127,7 @@ func readPourValues(r io.Reader) ([]string, error) {
 	}
 }
 
-// pourTrimRowEnds drops the spaces and tabs at the end of each row of b, so
+// pourTrimRowEnds drops the blanks at the end of each row of b, so
 // encoding/csv takes blanks after a closing quote. A line that ends inside
 // quotes ends inside a value, whose blanks stay. A quote doubled in a value
 // turns the state twice, so counting quotes is enough.
@@ -138,7 +139,7 @@ func pourTrimRowEnds(b []byte) []byte {
 			quoted = !quoted
 		}
 		if !quoted {
-			lines[i] = bytes.TrimRight(line, " \t")
+			lines[i] = bytes.TrimRightFunc(line, unicode.IsSpace)
 		}
 	}
 	return bytes.Join(lines, []byte("\n"))

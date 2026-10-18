@@ -572,7 +572,7 @@ func TestPour_csvBlanksInsideQuotes(t *testing.T) {
 
 // A usage error is returned for main to print once, with no help (#30).
 func TestUsageError_printsNothing(t *testing.T) {
-	for _, args := range [][]string{{"text", "a"}, {"text", "--nope", "-o", "x.tm2", "a"}, {"--nope"}} {
+	for _, args := range [][]string{{"text", "a"}, {"text", "--nope", "-o", "x.tm2", "a"}, {"--nope"}, {"help", "--nope"}, {"text", "help", "--nope"}} {
 		stdout, err := runMain(t, "", args...)
 		if err == nil || stdout != "" {
 			t.Errorf("%q: %v, printed %q", args, err, stdout)
@@ -586,5 +586,32 @@ func TestLabelName(t *testing.T) {
 		if got := labelName(path); got != want {
 			t.Errorf("labelName(%q) = %q, want %q", path, got, want)
 		}
+	}
+}
+
+// The CLI writes no label with no name, as MCP does not (#37).
+func TestText_outputWithNoName(t *testing.T) {
+	out := filepath.Join(t.TempDir(), ".tm2")
+	if _, err := runMain(t, "", "text", "-o", out, "a"); err == nil {
+		t.Error("no error")
+	}
+	if _, err := os.Stat(out); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("a file was written: %v", err)
+	}
+}
+
+// A full-width space after a closing quote is skipped, as everywhere else
+// around a value (#37).
+func TestPour_csvFullWidthSpace(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "x.tm2")
+	if _, err := runMain(t, "\"a\"\u3000\n\u3000\"b\"\n", "pour", "-o", out); err != nil {
+		t.Fatal(err)
+	}
+	f, err := tepra.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.TableData) != 2 || f.TableData[0][0] != "a" || f.TableData[1][0] != "b" {
+		t.Errorf("rows %q", f.TableData)
 	}
 }

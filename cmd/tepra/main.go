@@ -50,11 +50,12 @@ func newMainCommand() *cli.Command {
 	}
 	// urfave/cli prints a usage error and the help itself, before returning
 	// it. main prints errors, so each command returns it only. Subcommands
-	// do not inherit the handler.
+	// do not inherit the handler. The help commands urfave/cli adds as it
+	// runs would not have it, so there are none: -h and --help remain.
 	quiet := func(_ context.Context, _ *cli.Command, err error, _ bool) error { return err }
-	cmd.OnUsageError = quiet
-	for _, sub := range cmd.Commands {
-		sub.OnUsageError = quiet
+	for _, c := range append([]*cli.Command{cmd}, cmd.Commands...) {
+		c.OnUsageError = quiet
+		c.HideHelpCommand = true
 	}
 	return cmd
 }

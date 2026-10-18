@@ -69,6 +69,14 @@ func labelName(path string) string {
 	return name
 }
 
+// labelIsTM2 reports whether path names a .tm2 file, in any case, with a
+// name before ".tm2".
+//
+//declscope:shared // mcp.go and the commands check the file they write
+func labelIsTM2(path string) bool {
+	return strings.EqualFold(filepath.Ext(path), ".tm2") && labelName(path) != ""
+}
+
 // labelSettings are the settings of a label as the command line or MCP give
 // them: "" or nil for what is not given, so the label is as the app sets it.
 //
@@ -187,6 +195,9 @@ func labelPourOptions(opts []tepra.Option, code string) ([]tepra.PourOption, err
 //
 //declscope:shared // pour.go, pages.go and text.go read their flags with it
 func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
+	if out := cmd.String("output"); labelName(out) == "" {
+		return tepra.Tape{}, nil, fmt.Errorf("--output must name the file, such as label.tm2: %q", out)
+	}
 	tape, err := tepra.LookupTape(cmd.Int("tape"))
 	if err != nil {
 		return tepra.Tape{}, nil, err
