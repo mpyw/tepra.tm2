@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 import (
 	"errors"
@@ -12,36 +12,36 @@ import (
 // or a writer, are returned as they are, to test with errors.Is too.
 var (
 	// ErrTapeNotSupported is a tape width whose sizes are not known.
-	ErrTapeNotSupported = errors.New("tepra: tape width not supported")
+	ErrTapeNotSupported = errors.New("tm2: tape width not supported")
 	// ErrUnknownName is a name ParseFillMode, ParseBorderType, ParseAlign,
 	// ParseVerticalAlign, ParseRotation, ParseCodeKind or ParseImageMode
 	// does not know.
-	ErrUnknownName = errors.New("tepra: unknown name")
+	ErrUnknownName = errors.New("tm2: unknown name")
 	// ErrInvalidOptions is an Option, or options together, that NewText,
 	// NewPages or NewPour cannot use.
-	ErrInvalidOptions = errors.New("tepra: invalid options")
+	ErrInvalidOptions = errors.New("tm2: invalid options")
 	// ErrCrashesApp is a value TEPRA LINK 2 crashes on. It is not written.
-	ErrCrashesApp = errors.New("tepra: the app crashes on it")
+	ErrCrashesApp = errors.New("tm2: the app crashes on it")
 	// ErrBadFile is a file that is not a .tm2 file this package can read, or
 	// one it cannot encode. It wraps the JSON error.
-	ErrBadFile = errors.New("tepra: bad .tm2 file")
+	ErrBadFile = errors.New("tm2: bad .tm2 file")
 	// ErrBadText is text that is not UTF-8, which a file cannot hold.
-	ErrBadText = errors.New("tepra: text is not UTF-8")
+	ErrBadText = errors.New("tm2: text is not UTF-8")
 	// ErrNoText is a label with no text: an empty text, or no values to
 	// pour.
-	ErrNoText = errors.New("tepra: no text")
+	ErrNoText = errors.New("tm2: no text")
 	// ErrOverLimit is more than the app takes: rows, characters in a cell,
 	// columns, or a label over 3000 mm.
-	ErrOverLimit = errors.New("tepra: over the app's limit")
+	ErrOverLimit = errors.New("tm2: over the app's limit")
 	// ErrNoRoom is no room on the tape for what is on a label: padding that
 	// takes it, too many lines, a line too long to run across the tape, a
 	// font size too large, or a fixed length too short.
-	ErrNoRoom = errors.New("tepra: no room on the tape")
+	ErrNoRoom = errors.New("tm2: no room on the tape")
 	// ErrBadImage is a picture that cannot be read as PNG, JPEG or GIF.
-	ErrBadImage = errors.New("tepra: bad picture")
+	ErrBadImage = errors.New("tm2: bad picture")
 	// ErrBadCode is a value that cannot be shown as the kind of code asked
 	// for.
-	ErrBadCode = errors.New("tepra: bad value for a code")
+	ErrBadCode = errors.New("tm2: bad value for a code")
 )
 
 // errIndexed collects the errors of the items of a list, numbered from 1,

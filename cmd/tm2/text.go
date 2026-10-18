@@ -10,7 +10,7 @@ import (
 	"github.com/mpyw/tepra.tm2"
 )
 
-// textCommand is "tepra text".
+// textCommand is "tm2 text".
 //
 //declscope:shared // main.go makes it a subcommand
 func textCommand() *cli.Command {
@@ -19,14 +19,14 @@ func textCommand() *cli.Command {
 		Usage:     "make one label; a line break in the text breaks it into lines",
 		ArgsUsage: "text",
 		Description: "Give the text as one argument, line breaks and all:\n" +
-			"  tepra text -o out.tm2 $'line 1\\nline 2'    (bash, zsh)\n" +
-			"  tepra text -o out.tm2 \"line 1`nline 2\"    (PowerShell)",
+			"  tm2 text -o out.tm2 $'line 1\\nline 2'    (bash, zsh)\n" +
+			"  tm2 text -o out.tm2 \"line 1`nline 2\"    (PowerShell)",
 		Flags:  labelFlags(),
 		Action: textAction,
 	}
 }
 
-// textAction runs "tepra text".
+// textAction runs "tm2 text".
 func textAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() == 0 {
 		return errors.New("text needs the text of the label")
@@ -37,8 +37,8 @@ func textAction(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("text takes one argument, not %d; put line breaks in it, as $'line 1\\nline 2'", cmd.NArg())
 	}
 	tape, opts, err := labelOptions(cmd)
-	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
-		return tepra.NewText(tape, cmd.Args().First(), labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tm2.File, error) {
+		return tm2.NewText(tape, cmd.Args().First(), labelTextOptions(opts)...)
 	})
 	if err != nil {
 		return err

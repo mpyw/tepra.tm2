@@ -35,7 +35,7 @@ func labelFlags() []cli.Flag {
 		},
 		&cli.IntFlag{
 			Name:  "tape",
-			Value: tepra.Tape12mm.WidthMM,
+			Value: tm2.Tape12mm.WidthMM,
 			Usage: "the tape width in `MM`: 4, 6, 9, 12, 18, 24, 36 or 50",
 		},
 		&cli.FloatFlag{Name: "font-size", HideDefault: true, Usage: "the font `SIZE`; by default the text fills the tape"},
@@ -94,41 +94,41 @@ type labelSettings struct {
 // labelOptions are the options of s. A name it does not know is an error.
 //
 //declscope:shared // mcp.go turns the inputs of its tools into options with it
-func (s labelSettings) labelOptions() ([]tepra.Option, error) {
-	opts := []tepra.Option{tepra.WithName(s.name)}
-	add := func(opt tepra.Option) { opts = append(opts, opt) }
+func (s labelSettings) labelOptions() ([]tm2.Option, error) {
+	opts := []tm2.Option{tm2.WithName(s.name)}
+	add := func(opt tm2.Option) { opts = append(opts, opt) }
 	if s.bold {
-		add(tepra.WithBold())
+		add(tm2.WithBold())
 	}
 	if s.vertical {
-		add(tepra.WithVertical())
+		add(tm2.WithVertical())
 	}
 	if s.fontSize != nil {
-		add(tepra.WithFontSize(*s.fontSize))
+		add(tm2.WithFontSize(*s.fontSize))
 	}
 	if s.borderWidth != nil {
-		add(tepra.WithBorderWidth(*s.borderWidth))
+		add(tm2.WithBorderWidth(*s.borderWidth))
 	}
 	if s.padding != nil {
-		add(tepra.WithPaddingMM(*s.padding))
+		add(tm2.WithPaddingMM(*s.padding))
 	}
 	if s.margin != nil {
-		add(tepra.WithMarginMM(*s.margin))
+		add(tm2.WithMarginMM(*s.margin))
 	}
 	if s.length != nil {
-		add(tepra.WithLengthMM(*s.length))
+		add(tm2.WithLengthMM(*s.length))
 	}
 	if s.imageThreshold != nil {
-		add(tepra.WithImageThreshold(*s.imageThreshold))
+		add(tm2.WithImageThreshold(*s.imageThreshold))
 	}
 	if s.icon != nil {
-		add(tepra.WithIcon(s.icon))
+		add(tm2.WithIcon(s.icon))
 	}
 	if s.background != nil {
-		add(tepra.WithBackground(s.background))
+		add(tm2.WithBackground(s.background))
 	}
 	var errs []error
-	parse := func(name string, with func(string) (tepra.Option, error)) {
+	parse := func(name string, with func(string) (tm2.Option, error)) {
 		if name == "" {
 			return
 		}
@@ -139,12 +139,12 @@ func (s labelSettings) labelOptions() ([]tepra.Option, error) {
 		}
 		add(opt)
 	}
-	parse(s.fill, labelParse(tepra.ParseFillMode, tepra.WithFill))
-	parse(s.align, labelParse(tepra.ParseAlign, tepra.WithAlign))
-	parse(s.valign, labelParse(tepra.ParseVerticalAlign, tepra.WithVerticalAlign))
-	parse(s.rotate, labelParse(tepra.ParseRotation, tepra.WithRotation))
-	parse(s.border, labelParse(tepra.ParseBorderType, tepra.WithBorder))
-	parse(s.imageMode, labelParse(tepra.ParseImageMode, tepra.WithImageMode))
+	parse(s.fill, labelParse(tm2.ParseFillMode, tm2.WithFill))
+	parse(s.align, labelParse(tm2.ParseAlign, tm2.WithAlign))
+	parse(s.valign, labelParse(tm2.ParseVerticalAlign, tm2.WithVerticalAlign))
+	parse(s.rotate, labelParse(tm2.ParseRotation, tm2.WithRotation))
+	parse(s.border, labelParse(tm2.ParseBorderType, tm2.WithBorder))
+	parse(s.imageMode, labelParse(tm2.ParseImageMode, tm2.WithImageMode))
 	return opts, errors.Join(errs...)
 }
 
@@ -163,8 +163,8 @@ func labelParse[T, O any](parse func(string) (T, error), with func(T) O) func(st
 // labelTextOptions are opts, as NewText and NewPages take them.
 //
 //declscope:shared // pages.go, text.go and mcp.go pass their options on with it
-func labelTextOptions(opts []tepra.Option) []tepra.TextOption {
-	text := make([]tepra.TextOption, len(opts))
+func labelTextOptions(opts []tm2.Option) []tm2.TextOption {
+	text := make([]tm2.TextOption, len(opts))
 	for i, opt := range opts {
 		text[i] = opt
 	}
@@ -175,15 +175,15 @@ func labelTextOptions(opts []tepra.Option) []tepra.TextOption {
 // named code. An empty code is text.
 //
 //declscope:shared // pour.go and mcp.go pass their options on with it
-func labelPourOptions(opts []tepra.Option, code string) ([]tepra.PourOption, error) {
-	pour := make([]tepra.PourOption, len(opts), len(opts)+1)
+func labelPourOptions(opts []tm2.Option, code string) ([]tm2.PourOption, error) {
+	pour := make([]tm2.PourOption, len(opts), len(opts)+1)
 	for i, opt := range opts {
 		pour[i] = opt
 	}
 	if code == "" {
 		return pour, nil
 	}
-	opt, err := labelParse(tepra.ParseCodeKind, tepra.WithCode)(code)
+	opt, err := labelParse(tm2.ParseCodeKind, tm2.WithCode)(code)
 	if err != nil {
 		return nil, err
 	}
@@ -194,13 +194,13 @@ func labelPourOptions(opts []tepra.Option, code string) ([]tepra.PourOption, err
 // the output's, without ".tm2".
 //
 //declscope:shared // pour.go, pages.go and text.go read their flags with it
-func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
+func labelOptions(cmd *cli.Command) (tm2.Tape, []tm2.Option, error) {
 	if out := cmd.String("output"); !labelIsTM2(out) {
-		return tepra.Tape{}, nil, fmt.Errorf("--output must name a .tm2 file, such as label.tm2: %q", out)
+		return tm2.Tape{}, nil, fmt.Errorf("--output must name a .tm2 file, such as label.tm2: %q", out)
 	}
-	tape, err := tepra.LookupTape(cmd.Int("tape"))
+	tape, err := tm2.LookupTape(cmd.Int("tape"))
 	if err != nil {
-		return tepra.Tape{}, nil, err
+		return tm2.Tape{}, nil, err
 	}
 	s := labelSettings{
 		name:      labelName(cmd.String("output")),
@@ -227,10 +227,10 @@ func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
 		s.imageThreshold = &v
 	}
 	if s.icon, err = labelReadPicture(cmd.String("icon")); err != nil {
-		return tepra.Tape{}, nil, err
+		return tm2.Tape{}, nil, err
 	}
 	if s.background, err = labelReadPicture(cmd.String("background")); err != nil {
-		return tepra.Tape{}, nil, err
+		return tm2.Tape{}, nil, err
 	}
 	opts, err := s.labelOptions()
 	return tape, opts, err
@@ -242,7 +242,7 @@ func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
 // unreadable picture leaves.
 //
 //declscope:shared // the commands and the MCP tools make their files with it
-func labelBuild(tape tepra.Tape, err error, build func() (*tepra.File, error)) (*tepra.File, error) {
+func labelBuild(tape tm2.Tape, err error, build func() (*tm2.File, error)) (*tm2.File, error) {
 	if tape.WidthMM == 0 {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func labelReadPicture(path string) ([]byte, error) {
 // it can write to.
 //
 //declscope:shared // the commands and the MCP tools write their files with it
-func writeLabel(path string, f *tepra.File, overwrite bool, hint string) error {
+func writeLabel(path string, f *tm2.File, overwrite bool, hint string) error {
 	var buf bytes.Buffer
 	if _, err := f.WriteTo(&buf); err != nil {
 		return err
@@ -301,14 +301,14 @@ func writeLabel(path string, f *tepra.File, overwrite bool, hint string) error {
 // then, so a lost line changes nothing, and its error is dropped.
 //
 //declscope:shared // pour.go, pages.go and text.go report what they wrote with it
-func reportLabel(w io.Writer, path string, f *tepra.File) {
+func reportLabel(w io.Writer, path string, f *tm2.File) {
 	_, _ = fmt.Fprintln(w, describeLabel(path, f))
 }
 
 // describeLabel is one line about f, for after it is written.
 //
 //declscope:shared // mcp.go reports what its tools wrote with it
-func describeLabel(path string, f *tepra.File) string {
+func describeLabel(path string, f *tm2.File) string {
 	doc := f.Documents[0]
 	labels := fmt.Sprintf("1 label, %.1f mm long", doc.LengthMM())
 	if n := len(f.TableData); doc.PourMode && n != 1 {
@@ -328,7 +328,7 @@ func describeLabel(path string, f *tepra.File) string {
 // f, in mm.
 //
 //declscope:shared // mcp.go reports the longest with it
-func labelLengths(f *tepra.File) (short, long float64) {
+func labelLengths(f *tm2.File) (short, long float64) {
 	short = f.Documents[0].LengthMM()
 	for _, doc := range f.Documents {
 		short, long = min(short, doc.LengthMM()), max(long, doc.LengthMM())

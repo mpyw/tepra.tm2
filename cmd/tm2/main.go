@@ -1,10 +1,10 @@
-// Command tepra makes .tm2 label files for TEPRA LINK 2.
+// Command tm2 makes .tm2 label files for TEPRA LINK 2.
 //
-//	tepra pour -o out.tm2 [file]     one label per line of file, or of stdin
-//	tepra pages -o out.tm2 [file]    a page per line, each fitted to its line
-//	tepra text -o out.tm2 text       one label; a line break in text breaks it
-//	tepra inspect file.tm2           what a .tm2 file holds
-//	tepra mcp                        an MCP server on stdin and stdout
+//	tm2 pour -o out.tm2 [file]     one label per line of file, or of stdin
+//	tm2 pages -o out.tm2 [file]    a page per line, each fitted to its line
+//	tm2 text -o out.tm2 text       one label; a line break in text breaks it
+//	tm2 inspect file.tm2           what a .tm2 file holds
+//	tm2 mcp                        an MCP server on stdin and stdout
 //
 // Open the file in TEPRA LINK 2 to print it.
 package main
@@ -32,19 +32,19 @@ func main() {
 	os.Exit(mainExitCode(os.Stderr, err))
 }
 
-// newMainCommand is the tepra command and its subcommands.
+// newMainCommand is the tm2 command and its subcommands.
 func newMainCommand() *cli.Command {
 	cmd := &cli.Command{
-		Name:    "tepra",
+		Name:    "tm2",
 		Usage:   "make .tm2 label files for TEPRA LINK 2",
 		Version: mainVersion(),
 		// main prints errors and exits; urfave/cli must not do it as well.
 		ExitErrHandler: func(context.Context, *cli.Command, error) {},
-		// With no subcommand, the help. With one tepra does not have, an
+		// With no subcommand, the help. With one tm2 does not have, an
 		// error: urfave/cli would look for a help topic, and exit 3.
 		Action: func(_ context.Context, cmd *cli.Command) error {
 			if cmd.NArg() > 0 {
-				return fmt.Errorf("unknown command %q; see tepra --help", cmd.Args().First())
+				return fmt.Errorf("unknown command %q; see tm2 --help", cmd.Args().First())
 			}
 			return cli.ShowAppHelp(cmd)
 		},
@@ -68,20 +68,20 @@ func newMainCommand() *cli.Command {
 	return cmd
 }
 
-// mainSentinels are the errors of package tepra. Each says "tepra: ",
+// mainSentinels are the errors of package tm2. Each says "tm2: ",
 // which main prints at the start of each line already.
 var mainSentinels = []error{
-	tepra.ErrTapeNotSupported, tepra.ErrUnknownName, tepra.ErrInvalidOptions,
-	tepra.ErrCrashesApp, tepra.ErrBadFile, tepra.ErrBadText, tepra.ErrNoText,
-	tepra.ErrOverLimit, tepra.ErrNoRoom, tepra.ErrBadImage, tepra.ErrBadCode,
+	tm2.ErrTapeNotSupported, tm2.ErrUnknownName, tm2.ErrInvalidOptions,
+	tm2.ErrCrashesApp, tm2.ErrBadFile, tm2.ErrBadText, tm2.ErrNoText,
+	tm2.ErrOverLimit, tm2.ErrNoRoom, tm2.ErrBadImage, tm2.ErrBadCode,
 }
 
-// mainMessage is err's message without the "tepra: " of the package's
-// errors. A "tepra: " in a value the user gave stays.
+// mainMessage is err's message without the "tm2: " of the package's
+// errors. A "tm2: " in a value the user gave stays.
 func mainMessage(err error) string {
 	msg := err.Error()
 	for _, s := range mainSentinels {
-		msg = strings.ReplaceAll(msg, s.Error(), strings.TrimPrefix(s.Error(), "tepra: "))
+		msg = strings.ReplaceAll(msg, s.Error(), strings.TrimPrefix(s.Error(), "tm2: "))
 	}
 	return msg
 }
@@ -103,7 +103,7 @@ func mainExitCode(w io.Writer, err error) int {
 	// Errors joined together come a line each.
 	for line := range strings.Lines(msg) {
 		// A failed write to stderr has nowhere to be reported.
-		_, _ = fmt.Fprintf(w, "tepra: %s\n", strings.TrimSuffix(line, "\n"))
+		_, _ = fmt.Fprintf(w, "tm2: %s\n", strings.TrimSuffix(line, "\n"))
 	}
 	return code
 }

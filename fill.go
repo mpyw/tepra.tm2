@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 // FillMode is how a text box fills the box behind its text. Each mode was
 // seen in TEPRA LINK 2 for Android, opening a file this package wrote. The

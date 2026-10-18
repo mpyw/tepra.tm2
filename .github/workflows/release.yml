@@ -20,7 +20,7 @@ permissions:
 jobs:
   # ===========================================================================
   # Build every platform and publish the GitHub Release in one goreleaser run.
-  # tepra needs no cgo (CGO_ENABLED=0), so nothing needs a native runner.
+  # tm2 needs no cgo (CGO_ENABLED=0), so nothing needs a native runner.
   # ===========================================================================
   release:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 // Align is where a text box puts each line across its frame. Each value was
 // seen in TEPRA LINK 2 for Android, opening a file this package wrote. The

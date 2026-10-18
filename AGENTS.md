@@ -9,7 +9,7 @@ Writes `.tm2` files, the labels of TEPRA LINK 2. See README.md for the CLI, MCP 
 - Keep the app's quirks: the `"": ""` key after each drawer's identifier, the misspelled `BILineWidhValue`, 50 columns in `tableData` and `tableHeader`. Nobody knows which of them the app needs to read a file.
 - `testdata/` holds only files made for this repository. A user's own labels can be personal. Files from the app's templates carry KING JIM's artwork.
 - Check every error, or drop it with `_ =` and a comment saying why. errcheck runs with none of its default exclusions, in tests too.
-- Every error of package tepra wraps a sentinel of `err.go`, so callers test it with `errors.Is`. A new kind of failure gets a new sentinel there. The one exception: errors of the file system and of a reader or writer come back as they are, since `errors.Is` already tests them (`fs.ErrNotExist`).
+- Every error of package tm2 wraps a sentinel of `err.go`, so callers test it with `errors.Is`. A new kind of failure gets a new sentinel there. The one exception: errors of the file system and of a reader or writer come back as they are, since `errors.Is` already tests them (`fs.ErrNotExist`).
 - JSON goes through `encoding/json/v2`. A type with its own encoding implements `MarshalJSONTo` and `UnmarshalJSONFrom`, and `MarshalJSON` and `UnmarshalJSON` that call them, for `encoding/json`.
 - A field the app writes stays, even when changing it prints nothing. Its comment says what was tried. The options and the CLI offer only what showed differently.
 
@@ -30,7 +30,7 @@ mise exec -- golangci-lint run ./...
 mise exec -- declscope ./...
 ```
 
-declscope runs with `.declscope.yaml` (`qualify: ondemand`, `exported: true`). Each file is its own namespace, in `cmd/tepra` too. Only `tepra.go`, the types every file uses, is core.
+declscope runs with `.declscope.yaml` (`qualify: ondemand`, `exported: true`). Each file is its own namespace, in `cmd/tm2` too. Only `tm2.go`, the types every file uses, is core.
 
 A change to what the files hold is done only when a file it wrote opens in TEPRA LINK 2. Tests cannot show that. Say so when it is not checked yet.
 
@@ -49,4 +49,4 @@ A change to what the files hold is done only when a file it wrote opens in TEPRA
 | Let the app fit each poured value to the shared frame | A value of fewer lines grows to the frame's height and runs past its sides. Pour drawers set `sizePriority`, so every label keeps the size of the value of most lines. |
 | An option package per kind of label (`textopt`, `pouropt`, `pageopt`) | The kinds share every option but `WithCode`. Packages would repeat the shared ones, or need a fourth package and the config in `internal`. Option types do the same in one package: `Option` is a `TextOption` and a `PourOption`, and `WithCode` returns a `PourOnlyOption`, so a code given to `NewText` does not compile. |
 | Each label of a list in a pour file at its own size | A pour drawer has one `TIFontSize` for every row. `NewPages` puts each label in a document of its own instead, with `MultiplePage` set, so the app lists them. |
-| `tepra text` taking each argument as a line | `tepra text a b` then reads as two lines or as one with a space, and nobody can tell which. `pages` and `pour` break lines at line breaks, so `text` takes one argument and does the same. |
+| `tm2 text` taking each argument as a line | `tm2 text a b` then reads as two lines or as one with a space, and nobody can tell which. `pages` and `pour` break lines at line breaks, so `text` takes one argument and does the same. |

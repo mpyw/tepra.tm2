@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewText(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "会議室A\n3F", tepra.WithMarginMM(5))
+	f, err := tm2.NewText(tm2.Tape18mm, "会議室A\n3F", tm2.WithMarginMM(5))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,9 +18,9 @@ func TestNewText(t *testing.T) {
 	if doc.PourMode || doc.MultiplePage || len(f.TableData) != 0 {
 		t.Errorf("PourMode %v, MultiplePage %v, %d rows", doc.PourMode, doc.MultiplePage, len(f.TableData))
 	}
-	d := fixtureAs[*tepra.TextDrawer](t, doc.Drawers[0])
+	d := fixtureAs[*tm2.TextDrawer](t, doc.Drawers[0])
 	// Two lines; "会議室A" is 3.5 ems.
-	if d.FontSize != 17.5 || d.FontName != tepra.FontGothic || d.Frame[2] != 62 {
+	if d.FontSize != 17.5 || d.FontName != tm2.FontGothic || d.Frame[2] != 62 {
 		t.Errorf("size %v, font %q, width %v", d.FontSize, d.FontName, d.Frame[2])
 	}
 	if f.TextWords != "会議室A\n3F" || f.FileName != "label.tm2" {
@@ -34,7 +34,7 @@ func TestNewText(t *testing.T) {
 
 func TestNewText_writesTheKeysTheAppWrites(t *testing.T) {
 	app := decodeFixture(t, readFixture(t, fixturePourPath))
-	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	f, err := tm2.NewText(tm2.Tape18mm, "x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestNewText_writesTheKeysTheAppWrites(t *testing.T) {
 }
 
 func TestNewText_rejectsEmptyText(t *testing.T) {
-	if _, err := tepra.NewText(tepra.Tape18mm, ""); !errors.Is(err, tepra.ErrNoText) {
+	if _, err := tm2.NewText(tm2.Tape18mm, ""); !errors.Is(err, tm2.ErrNoText) {
 		t.Errorf("%v, want ErrNoText", err)
 	}
 }

@@ -1,6 +1,6 @@
 //declscope:namespace with
 
-package tepra
+package tm2
 
 import (
 	"bytes"

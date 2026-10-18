@@ -18,6 +18,11 @@ Then print from the app, as usual.
 
 It works from an AI assistant over MCP, from the command line, and from Go.
 
+> [!IMPORTANT]
+> `.tm2` is the format of TEPRA LINK 2 only.
+> TEPRA Creator (テプラ クリエイター), the app for Windows, does not open these files.
+> tepra.tm2 does not write files for TEPRA Creator.
+
 > [!WARNING]
 > This is an unofficial tool. KING JIM does not document the `.tm2` format.
 >
@@ -32,19 +37,19 @@ It works from an AI assistant over MCP, from the command line, and from Go.
 | Way | How |
 | --- | --- |
 | [mise](https://mise.jdx.dev/) (recommended) | `mise use -g github:mpyw/tepra.tm2` |
-| A release binary | Download the archive for your OS and CPU from [Releases](https://github.com/mpyw/tepra.tm2/releases). Put `tepra` on your `PATH`. `checksums.txt` has their SHA-256. |
-| From source | `go install github.com/mpyw/tepra.tm2/cmd/tepra@latest` |
+| A release binary | Download the archive for your OS and CPU from [Releases](https://github.com/mpyw/tepra.tm2/releases). Put `tm2` on your `PATH`. `checksums.txt` has their SHA-256. |
+| From source | `go install github.com/mpyw/tepra.tm2/cmd/tm2@latest` |
 
 Releases cover macOS, Linux and Windows, each on amd64 and arm64.
 
 ### MCP Server
 
-The MCP server is `tepra mcp`.
-First install `tepra` as a [tool](#tool), as above.
+The MCP server is `tm2 mcp`.
+First install `tm2` as a [tool](#tool), as above.
 Then add it to your assistant. For Claude Code:
 
 ```sh
-claude mcp add tepra -- tepra mcp
+claude mcp add tm2 -- tm2 mcp
 ```
 
 ### Library
@@ -52,6 +57,8 @@ claude mcp add tepra -- tepra mcp
 ```sh
 go get github.com/mpyw/tepra.tm2
 ```
+
+The package is named `tm2`.
 
 ## Usage: As an MCP Server
 
@@ -64,7 +71,7 @@ Then [print the file](#print-the-file) from TEPRA LINK 2.
 One label of two lines:
 
 ```sh
-tepra text -o sample.tm2 $'サンプル\nテキスト'
+tm2 text -o sample.tm2 $'サンプル\nテキスト'
 ```
 
 ```text
@@ -78,7 +85,7 @@ wrote sample.tm2: 1 label, 18.2 mm long, on 12 mm tape
 A label per row of a [CSV file](#the-csv-file), each in the size that fits it:
 
 ```sh
-tepra pages -o pages.tm2 items.csv
+tm2 pages -o pages.tm2 items.csv
 ```
 
 ```text
@@ -90,10 +97,10 @@ Then [print the file](#print-the-file) from TEPRA LINK 2.
 ## Usage: As a Library
 
 ```go
-f, err := tepra.NewPages(
-	tepra.Tape12mm,
+f, err := tm2.NewPages(
+	tm2.Tape12mm,
 	[]string{"1行目\n2行目", "1行目"},
-	tepra.WithAlign(tepra.AlignCenter),
+	tm2.WithAlign(tm2.AlignCenter),
 )
 if err != nil {
 	return err
@@ -105,7 +112,7 @@ return f.WriteFile("items.tm2")
 
 - All: [Kinds of label](#kinds-of-label), [Tapes](#tapes), [Layout](#layout), [Print the file](#print-the-file)
 - MCP: [MCP tools](#mcp-tools)
-- Tool: [Commands](#commands), [The CSV file](#the-csv-file), [Tool options](#tool-options), [tepra inspect](#tepra-inspect)
+- Tool: [Commands](#commands), [The CSV file](#the-csv-file), [Tool options](#tool-options), [tm2 inspect](#tm2-inspect)
 - Library: [Functions](#functions), [Library options](#library-options), [Option types](#option-types), [Errors](#errors), [Reading files](#reading-files)
 
 ### Kinds of label
@@ -117,7 +124,7 @@ return f.WriteFile("items.tm2")
 | Edit in the app | As one label | Page by page | As pour data, in a table |
 | QR codes and barcodes | No | No | Yes |
 | MCP tool | `create_text_label` | `create_label_pages` | `create_pour_labels` |
-| Command | `tepra text` | `tepra pages` | `tepra pour` |
+| Command | `tm2 text` | `tm2 pages` | `tm2 pour` |
 | Go | [`NewText`][NewText] | [`NewPages`][NewPages] | [`NewPour`][NewPour] |
 
 > [!TIP]
@@ -158,7 +165,7 @@ What you see when you edit the label in the app:
 
 ### MCP tools
 
-`tepra mcp` serves these on stdin and stdout:
+`tm2 mcp` serves these on stdin and stdout:
 
 | Tool | Kind | What it does |
 | --- | --- | --- |
@@ -180,16 +187,16 @@ Inputs:
 
 | Command | What it does |
 | --- | --- |
-| `tepra text [options] text` | Writes one label. A line break in the text breaks it into lines |
-| `tepra pages [options] [file.csv]` | Writes a page per row of the file |
-| `tepra pour [options] [file.csv]` | Writes a pour label per row of the file |
-| `tepra inspect file.tm2` | Shows what a `.tm2` file holds |
-| `tepra mcp` | Serves the [MCP tools](#mcp-tools) on stdin and stdout |
+| `tm2 text [options] text` | Writes one label. A line break in the text breaks it into lines |
+| `tm2 pages [options] [file.csv]` | Writes a page per row of the file |
+| `tm2 pour [options] [file.csv]` | Writes a pour label per row of the file |
+| `tm2 inspect file.tm2` | Shows what a `.tm2` file holds |
+| `tm2 mcp` | Serves the [MCP tools](#mcp-tools) on stdin and stdout |
 
 A pour file of the same `items.csv`:
 
 ```sh
-tepra pour -o items.tm2 items.csv
+tm2 pour -o items.tm2 items.csv
 ```
 
 ```text
@@ -199,7 +206,7 @@ wrote items.tm2: 3 labels, 12.0 mm each, on 12 mm tape
 A QR code per URL, one label each:
 
 ```sh
-tepra pour --code qr -o qr.tm2 urls.csv
+tm2 pour --code qr -o qr.tm2 urls.csv
 ```
 
 ```text
@@ -209,7 +216,7 @@ wrote qr.tm2: 2 labels, 12.2 mm each, on 12 mm tape
 A label of a fixed length, with a rounded border:
 
 ```sh
-tepra text --length 60 --border rounded --align center -o fixed.tm2 サンプル
+tm2 text --length 60 --border rounded --align center -o fixed.tm2 サンプル
 ```
 
 ```text
@@ -219,8 +226,8 @@ wrote fixed.tm2: 1 label, 60.0 mm long, on 12 mm tape
 Text turned 90 degrees, and text in white on black:
 
 ```sh
-tepra text --rotate 90 -o turned.tm2 $'サンプル\nテキスト'
-tepra text --fill inverted --bold -o inverted.tm2 サンプル
+tm2 text --rotate 90 -o turned.tm2 $'サンプル\nテキスト'
+tm2 text --fill inverted --bold -o inverted.tm2 サンプル
 ```
 
 ```text
@@ -295,13 +302,13 @@ Only `pour` takes these:
 > [!NOTE]
 > `--code jan13` takes 12 digits. The app adds the check digit.
 
-### tepra inspect
+### tm2 inspect
 
-`tepra inspect` shows what a `.tm2` file holds.
+`tm2 inspect` shows what a `.tm2` file holds.
 It reads files the app wrote, too.
 
 ```text
-$ tepra inspect items.tm2
+$ tm2 inspect items.tm2
 file:    items.tm2 (version 2.0.0, saved 2026/10/18 10:15)
 tape:    12 mm, pour, label 12.0 mm long, margin 1.0 mm
 drawers:
@@ -315,7 +322,7 @@ rows:    3, column "Label"
 A file of pages shows each page. Pages count from 1, as in the app:
 
 ```text
-$ tepra inspect pages.tm2
+$ tm2 inspect pages.tm2
 file:    pages.tm2 (version 2.0.0, saved 2026/10/18 10:15)
 page 1:
 tape:    12 mm, plain, label 12.0 mm long, margin 1.0 mm
@@ -378,14 +385,14 @@ The type of an option says which functions take it:
 | [`PourOnlyOption`][PourOnlyOption] | [`WithCode`][WithCode] | [`NewPour`][NewPour] |
 
 - So [`WithCode`][WithCode] given to [`NewText`][NewText] does not compile.
-- To build a list of options, make it a [`[]tepra.TextOption`][TextOption] or a [`[]tepra.PourOption`][PourOption].
+- To build a list of options, make it a [`[]tm2.TextOption`][TextOption] or a [`[]tm2.PourOption`][PourOption].
 
 ```go
-f, err := tepra.NewPour(
-	tepra.Tape12mm,
+f, err := tm2.NewPour(
+	tm2.Tape12mm,
 	"URL",
 	[]string{"https://example.com/"},
-	tepra.WithCode(tepra.CodeQR),
+	tm2.WithCode(tm2.CodeQR),
 )
 ```
 

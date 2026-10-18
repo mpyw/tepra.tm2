@@ -38,7 +38,7 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      # cmd/tepra's tests run its commands in process, so one profile
+      # cmd/tm2's tests run its commands in process, so one profile
       # covers it too.
       - name: Test with coverage
         run: go test -count=1 -race -covermode=atomic -coverpkg=./... -coverprofile=coverage.txt ./...

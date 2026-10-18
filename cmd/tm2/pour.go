@@ -18,7 +18,7 @@ import (
 	"github.com/mpyw/tepra.tm2"
 )
 
-// pourCommand is "tepra pour".
+// pourCommand is "tm2 pour".
 //
 //declscope:shared // main.go makes it a subcommand
 func pourCommand() *cli.Command {
@@ -45,7 +45,7 @@ func pourCommand() *cli.Command {
 	}
 }
 
-// pourAction runs "tepra pour".
+// pourAction runs "tm2 pour".
 func pourAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() > 1 {
 		return errors.New("pour takes one file at most")
@@ -56,8 +56,8 @@ func pourAction(_ context.Context, cmd *cli.Command) error {
 	}
 	tape, opts, err := labelOptions(cmd)
 	pour, codeErr := labelPourOptions(opts, cmd.String("code"))
-	f, err := labelBuild(tape, errors.Join(err, codeErr), func() (*tepra.File, error) {
-		return tepra.NewPour(tape, cmd.String("column"), values, pour...)
+	f, err := labelBuild(tape, errors.Join(err, codeErr), func() (*tm2.File, error) {
+		return tm2.NewPour(tape, cmd.String("column"), values, pour...)
 	})
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func readPourValues(r io.Reader) ([]string, error) {
 	b = bytes.TrimPrefix(b, []byte(pourBOM))
 	if !utf8.Valid(b) {
 		// Excel saves CSV in Shift_JIS by default in Japan.
-		return nil, fmt.Errorf("%w: save the file as UTF-8 (\"CSV UTF-8\" in Excel)", tepra.ErrBadText)
+		return nil, fmt.Errorf("%w: save the file as UTF-8 (\"CSV UTF-8\" in Excel)", tm2.ErrBadText)
 	}
 	// encoding/csv ends rows at "\n" only.
 	b = bytes.ReplaceAll(bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n")), []byte("\r"), []byte("\n"))

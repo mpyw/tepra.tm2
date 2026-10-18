@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"bytes"
@@ -28,12 +28,12 @@ func TestNewText_iconOfEachFormat(t *testing.T) {
 		"gif":  gifData.Bytes(),
 	}
 	for format, pic := range pictures {
-		f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(pic))
+		f, err := tm2.NewText(tm2.Tape18mm, "x", tm2.WithIcon(pic))
 		if err != nil {
 			t.Fatalf("%s: %v", format, err)
 		}
 		// The app stores pictures as PNG, so the others are converted.
-		img := fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0])
+		img := fixtureAs[*tm2.ImageDrawer](t, f.Documents[0].Drawers[0])
 		cfg, err := png.DecodeConfig(bytes.NewReader(img.Image))
 		if err != nil || cfg.Width != 6 || cfg.Height != 3 {
 			t.Errorf("%s: %+v, %v; want a 6 by 3 PNG", format, cfg, err)
@@ -43,25 +43,25 @@ func TestNewText_iconOfEachFormat(t *testing.T) {
 			t.Errorf("%s: icon %v by %v, want twice as wide as high", format, w, h)
 		}
 	}
-	if _, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithBackground([]byte("not a picture"))); !errors.Is(err, tepra.ErrBadImage) {
+	if _, err := tm2.NewText(tm2.Tape18mm, "x", tm2.WithBackground([]byte("not a picture"))); !errors.Is(err, tm2.ErrBadImage) {
 		t.Errorf("bad background: %v, want ErrBadImage", err)
 	}
 }
 
 func TestNewText_iconWithFixedLength(t *testing.T) {
 	pic := fixturePicture(t, 10, 10, false)
-	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(pic), tepra.WithLengthMM(80))
+	f, err := tm2.NewText(tm2.Tape18mm, "x", tm2.WithIcon(pic), tm2.WithLengthMM(80))
 	if err != nil {
 		t.Fatal(err)
 	}
 	doc := f.Documents[0]
-	icon := fixtureAs[*tepra.ImageDrawer](t, doc.Drawers[0])
-	text := fixtureAs[*tepra.TextDrawer](t, doc.Drawers[1])
+	icon := fixtureAs[*tm2.ImageDrawer](t, doc.Drawers[0])
+	text := fixtureAs[*tm2.TextDrawer](t, doc.Drawers[1])
 	// The icon and the text move together, centred: the icon is still
 	// before the text, with the same gap, and the blank on each side is the
 	// same.
 	gap := text.Frame[0] - (icon.Frame[0] + icon.Frame[2])
-	if math.Abs(gap-tepra.MMToPoints(1.5)) > 1e-9 {
+	if math.Abs(gap-tm2.MMToPoints(1.5)) > 1e-9 {
 		t.Errorf("gap %v between icon and text", gap)
 	}
 	left, right := icon.Frame[0], doc.Frame[2]-(text.Frame[0]+text.Frame[2])
@@ -71,34 +71,34 @@ func TestNewText_iconWithFixedLength(t *testing.T) {
 }
 
 func TestNewPages_layoutError(t *testing.T) {
-	_, err := tepra.NewPages(tepra.Tape18mm, []string{"a", "b"}, tepra.WithPaddingMM(10))
+	_, err := tm2.NewPages(tm2.Tape18mm, []string{"a", "b"}, tm2.WithPaddingMM(10))
 	// The same error on both pages is reported once, with both (#9).
-	if !errors.Is(err, tepra.ErrNoRoom) || !strings.HasPrefix(err.Error(), "pages 1, 2: ") || strings.Contains(err.Error(), "\n") {
+	if !errors.Is(err, tm2.ErrNoRoom) || !strings.HasPrefix(err.Error(), "pages 1, 2: ") || strings.Contains(err.Error(), "\n") {
 		t.Errorf("%v, want one ErrNoRoom on pages 1 and 2", err)
 	}
 	// Different errors are each reported.
-	_, err = tepra.NewPages(tepra.Tape18mm, []string{"a", strings.Repeat("あ", 50), strings.Repeat("あ", 60)}, tepra.WithFontSize(20), tepra.WithLengthMM(20))
-	if !errors.Is(err, tepra.ErrNoRoom) || !strings.Contains(err.Error(), "pages 2, 3: ") {
+	_, err = tm2.NewPages(tm2.Tape18mm, []string{"a", strings.Repeat("あ", 50), strings.Repeat("あ", 60)}, tm2.WithFontSize(20), tm2.WithLengthMM(20))
+	if !errors.Is(err, tm2.ErrNoRoom) || !strings.Contains(err.Error(), "pages 2, 3: ") {
 		t.Errorf("%v, want ErrNoRoom on pages 2 and 3", err)
 	}
 }
 
 func TestNewPour_tooManyInvertedLines(t *testing.T) {
-	value := strings.Repeat("a\n", tepra.FileTableColumns) + "a"
-	_, err := tepra.NewPour(tepra.Tape50mm, "c", []string{value}, tepra.WithFill(tepra.FillInverted), tepra.WithFontSize(1))
-	if !errors.Is(err, tepra.ErrOverLimit) {
+	value := strings.Repeat("a\n", tm2.FileTableColumns) + "a"
+	_, err := tm2.NewPour(tm2.Tape50mm, "c", []string{value}, tm2.WithFill(tm2.FillInverted), tm2.WithFontSize(1))
+	if !errors.Is(err, tm2.ErrOverLimit) {
 		t.Errorf("%v, want ErrOverLimit", err)
 	}
 }
 
 func TestFile_WriteFile_rejectsBadPage(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	f, err := tm2.NewText(tm2.Tape18mm, "x")
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.CurrentPage = 1
 	path := filepath.Join(t.TempDir(), "x.tm2")
-	if err := f.WriteFile(path); !errors.Is(err, tepra.ErrCrashesApp) {
+	if err := f.WriteFile(path); !errors.Is(err, tm2.ErrCrashesApp) {
 		t.Errorf("page 1 of 1: %v, want ErrCrashesApp", err)
 	}
 	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
@@ -110,7 +110,7 @@ func TestFile_WriteFile_rejectsBadPage(t *testing.T) {
 // them. MarshalJSON and UnmarshalJSON are for callers that use them by
 // name, and must give the same.
 func TestMarshalJSON_byName(t *testing.T) {
-	f, err := tepra.ReadFile(fixturePourPath)
+	f, err := tm2.ReadFile(fixturePourPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestMarshalJSON_byName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var back tepra.Drawers
+	var back tm2.Drawers
 	if err := back.UnmarshalJSON(b); err != nil || len(back) != len(ds) {
 		t.Errorf("Drawers.UnmarshalJSON: %v, %d drawers", err, len(back))
 	}
@@ -137,28 +137,28 @@ func TestMarshalJSON_byName(t *testing.T) {
 // reuse its buffer (#9).
 func TestWithIcon_copiesThePicture(t *testing.T) {
 	pic := fixturePicture(t, 4, 4, false)
-	opt := tepra.WithIcon(pic)
+	opt := tm2.WithIcon(pic)
 	clear(pic)
-	f, err := tepra.NewText(tepra.Tape18mm, "x", opt)
+	f, err := tm2.NewText(tm2.Tape18mm, "x", opt)
 	if err != nil {
 		t.Fatalf("%v: the option read the cleared buffer", err)
 	}
-	if fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0]).Image[1] != 'P' {
+	if fixtureAs[*tm2.ImageDrawer](t, f.Documents[0].Drawers[0]).Image[1] != 'P' {
 		t.Error("the icon is not the PNG given")
 	}
 }
 
 // A nil drawer, or a raw one with no JSON, is ErrBadFile, not a panic (#9).
 func TestDrawers_nil(t *testing.T) {
-	var text *tepra.TextDrawer
-	for name, d := range map[string]tepra.Drawer{"nil": nil, "nil text": text, "raw with no JSON": &tepra.RawDrawer{Type: "shape"}} {
-		f, err := tepra.NewText(tepra.Tape18mm, "x")
+	var text *tm2.TextDrawer
+	for name, d := range map[string]tm2.Drawer{"nil": nil, "nil text": text, "raw with no JSON": &tm2.RawDrawer{Type: "shape"}} {
+		f, err := tm2.NewText(tm2.Tape18mm, "x")
 		if err != nil {
 			t.Fatal(err)
 		}
 		f.Documents[0].Drawers = append(f.Documents[0].Drawers, d)
 		var buf bytes.Buffer
-		if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrBadFile) {
+		if _, err := f.WriteTo(&buf); !errors.Is(err, tm2.ErrBadFile) {
 			t.Errorf("%s: %v, want ErrBadFile", name, err)
 		}
 	}

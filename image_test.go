@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"bytes"
@@ -10,38 +10,38 @@ import (
 )
 
 func TestParseImageMode(t *testing.T) {
-	for _, m := range []tepra.ImageMode{tepra.ImageModeDiffusion, tepra.ImageModeThreshold, tepra.ImageModeScreen} {
-		if got, err := tepra.ParseImageMode(m.String()); err != nil || got != m {
+	for _, m := range []tm2.ImageMode{tm2.ImageModeDiffusion, tm2.ImageModeThreshold, tm2.ImageModeScreen} {
+		if got, err := tm2.ParseImageMode(m.String()); err != nil || got != m {
 			t.Errorf("ParseImageMode(%q) = %v, %v", m.String(), got, err)
 		}
 	}
 	for _, name := range []string{"", "dither"} {
-		if _, err := tepra.ParseImageMode(name); !errors.Is(err, tepra.ErrUnknownName) {
+		if _, err := tm2.ParseImageMode(name); !errors.Is(err, tm2.ErrUnknownName) {
 			t.Errorf("ParseImageMode(%q): %v", name, err)
 		}
 	}
-	if got := tepra.ImageMode(0).String(); got != "ImageMode(0)" {
+	if got := tm2.ImageMode(0).String(); got != "ImageMode(0)" {
 		t.Errorf("String() = %q", got)
 	}
 }
 
 func TestOptions_imageMode(t *testing.T) {
 	pic := fixturePicture(t, 10, 10, false)
-	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(pic), tepra.WithBackground(pic), tepra.WithImageMode(tepra.ImageModeScreen), tepra.WithImageThreshold(64))
+	f, err := tm2.NewText(tm2.Tape18mm, "x", tm2.WithIcon(pic), tm2.WithBackground(pic), tm2.WithImageMode(tm2.ImageModeScreen), tm2.WithImageThreshold(64))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i, d := range f.Documents[0].Drawers[:2] {
-		img := fixtureAs[*tepra.ImageDrawer](t, d)
-		if img.ImageMode != tepra.ImageModeScreen || img.ImageThreshold != 64 {
+		img := fixtureAs[*tm2.ImageDrawer](t, d)
+		if img.ImageMode != tm2.ImageModeScreen || img.ImageThreshold != 64 {
 			t.Errorf("picture %d: mode %v, threshold %d", i, img.ImageMode, img.ImageThreshold)
 		}
 	}
-	f, err = tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(pic))
+	f, err = tm2.NewText(tm2.Tape18mm, "x", tm2.WithIcon(pic))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if img := fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0]); img.ImageMode != tepra.ImageModeThreshold || img.ImageThreshold != tepra.DefaultImageThreshold {
+	if img := fixtureAs[*tm2.ImageDrawer](t, f.Documents[0].Drawers[0]); img.ImageMode != tm2.ImageModeThreshold || img.ImageThreshold != tm2.DefaultImageThreshold {
 		t.Errorf("default: mode %v, threshold %d", img.ImageMode, img.ImageThreshold)
 	}
 }
@@ -49,11 +49,11 @@ func TestOptions_imageMode(t *testing.T) {
 // A stretched background has no more pixels than the printer has dots for
 // the label: 360 per inch (#8).
 func TestBackground_atMostThePrintersDots(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithBackground(fixturePicture(t, 10, 2000, false)))
+	f, err := tm2.NewText(tm2.Tape18mm, "x", tm2.WithBackground(fixturePicture(t, 10, 2000, false)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	bg := fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0])
+	bg := fixtureAs[*tm2.ImageDrawer](t, f.Documents[0].Drawers[0])
 	cfg, err := png.DecodeConfig(bytes.NewReader(bg.Image))
 	if err != nil {
 		t.Fatal(err)

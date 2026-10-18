@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ func TestReadFile_writesBackWhatTheAppWrote(t *testing.T) {
 	}
 	for _, path := range paths {
 		want := readFixture(t, path)
-		f, err := tepra.ReadFile(path)
+		f, err := tm2.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -40,7 +40,7 @@ func TestReadFile_writesBackWhatTheAppWrote(t *testing.T) {
 }
 
 func TestReadFile_readsTheFixture(t *testing.T) {
-	f, err := tepra.ReadFile(fixturePourPath)
+	f, err := tm2.ReadFile(fixturePourPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,9 +51,9 @@ func TestReadFile_readsTheFixture(t *testing.T) {
 	if !doc.PourMode || doc.TapeWidthMM != 18 {
 		t.Errorf("PourMode %v, TapeWidthMM %d; want true, 18", doc.PourMode, doc.TapeWidthMM)
 	}
-	pour, ok := doc.Drawers[1].(*tepra.PourDrawer)
+	pour, ok := doc.Drawers[1].(*tm2.PourDrawer)
 	if !ok {
-		t.Fatalf("drawer 1 is %T, want *tepra.PourDrawer", doc.Drawers[1])
+		t.Fatalf("drawer 1 is %T, want *tm2.PourDrawer", doc.Drawers[1])
 	}
 	if pour.Identifier != "1a87ff22-bb84-4ac5-9e28-d451bc3011ae" || pour.FontSize != 17.5 {
 		t.Errorf("pour drawer: identifier %q, font size %v", pour.Identifier, pour.FontSize)
@@ -67,7 +67,7 @@ func TestReadFile_readsTheFixture(t *testing.T) {
 }
 
 func TestFile_WriteFile(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "a<b>&c")
+	f, err := tm2.NewText(tm2.Tape18mm, "a<b>&c")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,27 +80,27 @@ func TestFile_WriteFile(t *testing.T) {
 	if !bytes.Contains(b, []byte(`"TIText":"a<b>&c"`)) {
 		t.Errorf("text escaped in %s", b)
 	}
-	got, err := tepra.ReadFile(path)
+	got, err := tm2.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fixtureAs[*tepra.TextDrawer](t, got.Documents[0].Drawers[0]).Text != "a<b>&c" {
+	if fixtureAs[*tm2.TextDrawer](t, got.Documents[0].Drawers[0]).Text != "a<b>&c" {
 		t.Error("text not read back")
 	}
 }
 
 func TestParseFile_rejectsBadJSON(t *testing.T) {
 	for _, in := range []string{`{`, `not json`, `{"documents":[{"drawers":[1]}]}`, `{"currentPage":"x"}`, `null`, `{}`, `{"documents":[]}`} {
-		if _, err := tepra.ParseFile(bytes.NewReader([]byte(in))); !errors.Is(err, tepra.ErrBadFile) {
+		if _, err := tm2.ParseFile(bytes.NewReader([]byte(in))); !errors.Is(err, tm2.ErrBadFile) {
 			t.Errorf("ParseFile(%s): %v, want ErrBadFile", in, err)
 		}
 	}
 	// Errors of the file system are as they are (#6), reading too (#20).
-	if _, err := tepra.ReadFile(filepath.Join(t.TempDir(), "none.tm2")); !errors.Is(err, fs.ErrNotExist) {
+	if _, err := tm2.ReadFile(filepath.Join(t.TempDir(), "none.tm2")); !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("missing file: %v, want fs.ErrNotExist", err)
 	}
 	var pathErr *fs.PathError
-	if _, err := tepra.ReadFile(t.TempDir()); !errors.As(err, &pathErr) || errors.Is(err, tepra.ErrBadFile) {
+	if _, err := tm2.ReadFile(t.TempDir()); !errors.As(err, &pathErr) || errors.Is(err, tm2.ErrBadFile) {
 		t.Errorf("a folder: %v, want the fs.PathError alone", err)
 	}
 }
@@ -108,16 +108,16 @@ func TestParseFile_rejectsBadJSON(t *testing.T) {
 // A file the package cannot encode is ErrBadFile, from WriteTo and
 // WriteFile (#6).
 func TestFile_encodeError(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	f, err := tm2.NewText(tm2.Tape18mm, "x")
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.Documents[0].Margin = math.NaN()
 	var buf bytes.Buffer
-	if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrBadFile) {
+	if _, err := f.WriteTo(&buf); !errors.Is(err, tm2.ErrBadFile) {
 		t.Errorf("WriteTo: %v, want ErrBadFile", err)
 	}
-	if err := f.WriteFile(filepath.Join(t.TempDir(), "x.tm2")); !errors.Is(err, tepra.ErrBadFile) {
+	if err := f.WriteFile(filepath.Join(t.TempDir(), "x.tm2")); !errors.Is(err, tm2.ErrBadFile) {
 		t.Errorf("WriteFile: %v, want ErrBadFile", err)
 	}
 }
@@ -168,14 +168,14 @@ func fileQuote(keys []string) string {
 }
 
 func TestFile_rejectsPagesTheAppCrashesOn(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "x")
+	f, err := tm2.NewText(tm2.Tape18mm, "x")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, page := range []int{1, -1} {
 		f.CurrentPage = page
 		var buf bytes.Buffer
-		if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrCrashesApp) {
+		if _, err := f.WriteTo(&buf); !errors.Is(err, tm2.ErrCrashesApp) {
 			t.Errorf("page %d: %v, want ErrCrashesApp", page, err)
 		}
 		if _, err := jsonv1.Marshal(f); err == nil {
@@ -187,7 +187,7 @@ func TestFile_rejectsPagesTheAppCrashesOn(t *testing.T) {
 // Keys the package does not know survive a read and a write, on the file,
 // on a document and on each kind of drawer (#7).
 func TestReadFile_keepsUnknownKeys(t *testing.T) {
-	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(fixturePicture(t, 2, 2, false)))
+	f, err := tm2.NewText(tm2.Tape18mm, "x", tm2.WithIcon(fixturePicture(t, 2, 2, false)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestReadFile_keepsUnknownKeys(t *testing.T) {
 	in = strings.Replace(in, `{"documents":`, `{"futureFile":1,"documents":`, 1)
 	in = strings.Replace(in, `"drawers":[`, `"futureDocument":[true],"drawers":[`, 1)
 	in = strings.ReplaceAll(in, `"":"",`, `"":"","futureDrawer":"kept",`)
-	g, err := tepra.ParseFile(strings.NewReader(in))
+	g, err := tm2.ParseFile(strings.NewReader(in))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestReadFile_keepsUnknownKeys(t *testing.T) {
 // A document that is null or {} is no label (#31).
 func TestParseFile_emptyDocuments(t *testing.T) {
 	for _, in := range []string{`{"documents":[null]}`, `{"documents":[{}]}`, `{"documents":[{"SettingsTapeWidth":18},{}]}`} {
-		if _, err := tepra.ParseFile(strings.NewReader(in)); !errors.Is(err, tepra.ErrBadFile) {
+		if _, err := tm2.ParseFile(strings.NewReader(in)); !errors.Is(err, tm2.ErrBadFile) {
 			t.Errorf("ParseFile(%s): %v, want ErrBadFile", in, err)
 		}
 	}
@@ -235,11 +235,11 @@ func TestParseFile_emptyDocuments(t *testing.T) {
 // A drawer of an unknown type is kept, whatever its keys hold (#31).
 func TestParseFile_unknownDrawerWithOddKeys(t *testing.T) {
 	in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[{"type":"shape","identifier":"id","frame":"x"}]}]}`
-	f, err := tepra.ParseFile(strings.NewReader(in))
+	f, err := tm2.ParseFile(strings.NewReader(in))
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0])
+	r := fixtureAs[*tm2.RawDrawer](t, f.Documents[0].Drawers[0])
 	if r.Type != "shape" || r.Identifier != "id" || !strings.Contains(string(r.JSON), `"frame":"x"`) {
 		t.Errorf("%+v", r)
 	}
@@ -249,15 +249,15 @@ func TestParseFile_unknownDrawerWithOddKeys(t *testing.T) {
 // a known type must have a string (#39).
 func TestParseFile_identifierNotAString(t *testing.T) {
 	in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[{"type":"shape","identifier":5,"":""}]}]}`
-	f, err := tepra.ParseFile(strings.NewReader(in))
+	f, err := tm2.ParseFile(strings.NewReader(in))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0]); r.Identifier != "" || !strings.Contains(string(r.JSON), `"identifier":5`) {
+	if r := fixtureAs[*tm2.RawDrawer](t, f.Documents[0].Drawers[0]); r.Identifier != "" || !strings.Contains(string(r.JSON), `"identifier":5`) {
 		t.Errorf("%+v", r)
 	}
 	in = strings.Replace(in, `"shape"`, `"text"`, 1)
-	if _, err := tepra.ParseFile(strings.NewReader(in)); !errors.Is(err, tepra.ErrBadFile) {
+	if _, err := tm2.ParseFile(strings.NewReader(in)); !errors.Is(err, tm2.ErrBadFile) {
 		t.Errorf("text drawer: %v, want ErrBadFile", err)
 	}
 }
@@ -267,12 +267,12 @@ func TestParseFile_identifierNotAString(t *testing.T) {
 func TestParseFile_drawerOfNoType(t *testing.T) {
 	for _, drawer := range []string{`{"type":5,"identifier":"a"}`, `5`, `null`, `"x"`, `[1]`} {
 		in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[` + drawer + `]}]}`
-		f, err := tepra.ParseFile(strings.NewReader(in))
+		f, err := tm2.ParseFile(strings.NewReader(in))
 		if err != nil {
 			t.Errorf("%s: %v", drawer, err)
 			continue
 		}
-		r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0])
+		r := fixtureAs[*tm2.RawDrawer](t, f.Documents[0].Drawers[0])
 		var buf bytes.Buffer
 		if _, err := f.WriteTo(&buf); err != nil || !strings.Contains(buf.String(), `"drawers":[`+drawer+`]`) {
 			t.Errorf("%s: written back %v, %s; raw %+v", drawer, err, buf.String(), r)
@@ -285,12 +285,12 @@ func TestParseFile_drawerOfNoType(t *testing.T) {
 func TestParseFile_drawerOfNoTypeKeepsItsFrame(t *testing.T) {
 	for _, drawer := range []string{`{"type":5,"frame":[10,2,3,4],"identifier":"id"}`, `{"frame":[10,2,3,4],"identifier":"id"}`} {
 		in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[` + drawer + `]}]}`
-		f, err := tepra.ParseFile(strings.NewReader(in))
+		f, err := tm2.ParseFile(strings.NewReader(in))
 		if err != nil {
 			t.Fatal(err)
 		}
-		r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0])
-		if r.Frame != (tepra.Rect{10, 2, 3, 4}) || r.Identifier != "id" || r.Type != "" {
+		r := fixtureAs[*tm2.RawDrawer](t, f.Documents[0].Drawers[0])
+		if r.Frame != (tm2.Rect{10, 2, 3, 4}) || r.Identifier != "id" || r.Type != "" {
 			t.Errorf("%s: %+v", drawer, r.BaseDrawer)
 		}
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/mpyw/tepra.tm2"
 )
 
-// mcpCommand is "tepra mcp".
+// mcpCommand is "tm2 mcp".
 //
 //declscope:shared // main.go makes it a subcommand
 func mcpCommand() *cli.Command {
@@ -98,10 +98,10 @@ type mcpLabelOutput struct {
 	Message  string  `json:"message" jsonschema:"what was written, and how to print it"`
 }
 
-// newMCPServer returns the MCP server of "tepra mcp".
+// newMCPServer returns the MCP server of "tm2 mcp".
 func newMCPServer(version string) *mcp.Server {
 	s := mcp.NewServer(
-		&mcp.Implementation{Name: "tepra", Title: "TEPRA LINK 2 labels", Version: version},
+		&mcp.Implementation{Name: "tm2", Title: "TEPRA LINK 2 labels", Version: version},
 		&mcp.ServerOptions{Instructions: mcpInstructions},
 	)
 	mcp.AddTool(s, &mcp.Tool{
@@ -135,8 +135,8 @@ func mcpPour(_ context.Context, _ *mcp.CallToolRequest, in mcpPourInput) (*mcp.C
 	if column == "" {
 		column = "Label"
 	}
-	f, err := labelBuild(tape, errors.Join(err, codeErr), func() (*tepra.File, error) {
-		return tepra.NewPour(tape, column, in.Labels, pour...)
+	f, err := labelBuild(tape, errors.Join(err, codeErr), func() (*tm2.File, error) {
+		return tm2.NewPour(tape, column, in.Labels, pour...)
 	})
 	if err != nil {
 		return nil, mcpLabelOutput{}, err
@@ -148,8 +148,8 @@ func mcpPour(_ context.Context, _ *mcp.CallToolRequest, in mcpPourInput) (*mcp.C
 // mcpPages handles create_label_pages.
 func mcpPages(_ context.Context, _ *mcp.CallToolRequest, in mcpPagesInput) (*mcp.CallToolResult, mcpLabelOutput, error) {
 	tape, opts, err := in.mcpOptions()
-	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
-		return tepra.NewPages(tape, in.Labels, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tm2.File, error) {
+		return tm2.NewPages(tape, in.Labels, labelTextOptions(opts)...)
 	})
 	if err != nil {
 		return nil, mcpLabelOutput{}, err
@@ -161,8 +161,8 @@ func mcpPages(_ context.Context, _ *mcp.CallToolRequest, in mcpPagesInput) (*mcp
 // mcpText handles create_text_label.
 func mcpText(_ context.Context, _ *mcp.CallToolRequest, in mcpTextInput) (*mcp.CallToolResult, mcpLabelOutput, error) {
 	tape, opts, err := in.mcpOptions()
-	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
-		return tepra.NewText(tape, in.Text, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tm2.File, error) {
+		return tm2.NewText(tape, in.Text, labelTextOptions(opts)...)
 	})
 	if err != nil {
 		return nil, mcpLabelOutput{}, err
@@ -176,28 +176,28 @@ func mcpInspect(_ context.Context, _ *mcp.CallToolRequest, in mcpInspectInput) (
 	if !filepath.IsAbs(in.Path) {
 		return nil, nil, fmt.Errorf("%w: %s", errMCPRelativePath, in.Path)
 	}
-	f, err := tepra.ReadFile(in.Path)
+	f, err := tm2.ReadFile(in.Path)
 	if err != nil {
 		return nil, nil, err
 	}
 	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: inspectFile(f)}}}, nil, nil
 }
 
-// mcpOptions checks s and converts it for package tepra.
-func (s mcpLabelStyle) mcpOptions() (tepra.Tape, []tepra.Option, error) {
+// mcpOptions checks s and converts it for package tm2.
+func (s mcpLabelStyle) mcpOptions() (tm2.Tape, []tm2.Option, error) {
 	if !filepath.IsAbs(s.Path) {
-		return tepra.Tape{}, nil, fmt.Errorf("%w: %s", errMCPRelativePath, s.Path)
+		return tm2.Tape{}, nil, fmt.Errorf("%w: %s", errMCPRelativePath, s.Path)
 	}
 	if !labelIsTM2(s.Path) {
-		return tepra.Tape{}, nil, fmt.Errorf("%w: %s", errMCPNotTM2, s.Path)
+		return tm2.Tape{}, nil, fmt.Errorf("%w: %s", errMCPNotTM2, s.Path)
 	}
 	width := s.TapeWidthMM
 	if width == 0 {
-		width = tepra.Tape12mm.WidthMM
+		width = tm2.Tape12mm.WidthMM
 	}
-	tape, err := tepra.LookupTape(width)
+	tape, err := tm2.LookupTape(width)
 	if err != nil {
-		return tepra.Tape{}, nil, err
+		return tm2.Tape{}, nil, err
 	}
 	settings := labelSettings{
 		name:           labelName(s.Path),
@@ -217,10 +217,10 @@ func (s mcpLabelStyle) mcpOptions() (tepra.Tape, []tepra.Option, error) {
 		imageThreshold: s.ImageThreshold,
 	}
 	if settings.icon, err = mcpReadPicture(s.IconPath); err != nil {
-		return tepra.Tape{}, nil, err
+		return tm2.Tape{}, nil, err
 	}
 	if settings.background, err = mcpReadPicture(s.BackgroundPath); err != nil {
-		return tepra.Tape{}, nil, err
+		return tm2.Tape{}, nil, err
 	}
 	opts, err := settings.labelOptions()
 	return tape, opts, err
@@ -240,7 +240,7 @@ func mcpReadPicture(path string) ([]byte, error) {
 
 // mcpWrite writes f to s.Path and reports what it wrote. The error, if any,
 // is in the second result.
-func (s mcpLabelStyle) mcpWrite(f *tepra.File) (mcpLabelOutput, error) {
+func (s mcpLabelStyle) mcpWrite(f *tm2.File) (mcpLabelOutput, error) {
 	if err := writeLabel(s.Path, f, s.Overwrite, "overwrite: true"); err != nil {
 		return mcpLabelOutput{}, err
 	}
@@ -256,10 +256,10 @@ func (s mcpLabelStyle) mcpWrite(f *tepra.File) (mcpLabelOutput, error) {
 		// pictures.
 		var size float64
 		switch d := doc.Drawers[len(doc.Drawers)-1].(type) {
-		case *tepra.PourDrawer:
+		case *tm2.PourDrawer:
 			out.Labels = len(f.TableData)
 			size = d.FontSize
-		case *tepra.TextDrawer:
+		case *tm2.TextDrawer:
 			size = d.FontSize
 		}
 		if i == 0 || size < out.FontSize {
