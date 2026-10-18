@@ -40,6 +40,14 @@ func newMainCommand() *cli.Command {
 		Version: mainVersion(),
 		// main prints errors and exits; urfave/cli must not do it as well.
 		ExitErrHandler: func(context.Context, *cli.Command, error) {},
+		// With no subcommand, the help. With one tepra does not have, an
+		// error: urfave/cli would look for a help topic, and exit 3.
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			if cmd.NArg() > 0 {
+				return fmt.Errorf("unknown command %q; see tepra --help", cmd.Args().First())
+			}
+			return cli.ShowAppHelp(cmd)
+		},
 		Commands: []*cli.Command{
 			pourCommand(),
 			pagesCommand(),

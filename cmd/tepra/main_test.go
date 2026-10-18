@@ -615,3 +615,22 @@ func TestPour_csvFullWidthSpace(t *testing.T) {
 		t.Errorf("rows %q", f.TableData)
 	}
 }
+
+// An unknown command is a usage error, exit 1; no command shows the help
+// (#46).
+func TestMain_unknownCommand(t *testing.T) {
+	for _, name := range []string{"nope", "help"} {
+		_, err := runMain(t, "", name)
+		if err == nil || !strings.Contains(err.Error(), "unknown command \""+name+"\"") {
+			t.Errorf("%s: %v", name, err)
+		}
+		var w bytes.Buffer
+		if code := mainExitCode(&w, err); code != 1 {
+			t.Errorf("%s: exit %d, want 1", name, code)
+		}
+	}
+	stdout, err := runMain(t, "")
+	if err != nil || !strings.Contains(stdout, "USAGE:") {
+		t.Errorf("no command: %v, %q", err, stdout)
+	}
+}
