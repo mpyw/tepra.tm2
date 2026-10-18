@@ -85,7 +85,9 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 	switch c.code {
 	case CodeText:
 		size, width = layoutText(texts, height, c.fontSize, sideways)
-		if size <= 0 {
+		// A font size given is above 0, so the room is checked by the size
+		// that would fit: with no room for any, there is none for the given.
+		if fit, _ := layoutText(texts, height, 0, sideways); fit <= 0 {
 			return labelLayout{}, fmt.Errorf("%w: %s", ErrNoRoom, layoutNoRoom(tape, texts, c, sideways))
 		}
 	case CodeQR:

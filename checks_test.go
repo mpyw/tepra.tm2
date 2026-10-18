@@ -273,3 +273,14 @@ func TestErrors_hiddenAndLong(t *testing.T) {
 		t.Errorf("%d bytes: %.300v", len(err.Error()), err)
 	}
 }
+
+// A font size given does not skip the check for room (#44).
+func TestLayout_noRoomWithAFontSize(t *testing.T) {
+	_, err := tepra.NewText(tepra.Tape4mm, "A", tepra.WithBorder(tepra.BorderBox), tepra.WithFontSize(3))
+	if !errors.Is(err, tepra.ErrNoRoom) || !strings.Contains(err.Error(), "padding of 1.5 mm") {
+		t.Errorf("%v, want ErrNoRoom for the padding", err)
+	}
+	if _, err := tepra.NewText(tepra.Tape4mm, "A", tepra.WithFontSize(3)); err != nil {
+		t.Errorf("no padding: %v", err)
+	}
+}
