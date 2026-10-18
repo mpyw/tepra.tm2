@@ -42,7 +42,7 @@ var errMCPNotTM2 = errors.New("path must name a .tm2 file, such as label.tm2")
 type mcpLabelStyle struct {
 	Path           string   `json:"path" jsonschema:"absolute path of the .tm2 file to write, ending in .tm2"`
 	Overwrite      bool     `json:"overwrite,omitempty" jsonschema:"replace the file at path when it exists"`
-	TapeWidthMM    int      `json:"tape_width_mm,omitempty" jsonschema:"tape width in mm: 4, 6, 9, 12, 18 (when left out), 24, 36 or 50"`
+	TapeWidthMM    int      `json:"tape_width_mm,omitempty" jsonschema:"tape width in mm: 4, 6, 9, 12 (when left out), 18, 24, 36 or 50"`
 	FontSize       *float64 `json:"font_size,omitempty" jsonschema:"font size in points; left out, the text fills the tape"`
 	Bold           bool     `json:"bold,omitempty" jsonschema:"write the text in bold"`
 	Align          string   `json:"align,omitempty" jsonschema:"where each line goes across: left (the default), center or right"`
@@ -193,7 +193,7 @@ func (s mcpLabelStyle) mcpOptions() (tepra.Tape, []tepra.Option, error) {
 	}
 	width := s.TapeWidthMM
 	if width == 0 {
-		width = tepra.Tape18mm.WidthMM
+		width = tepra.Tape12mm.WidthMM
 	}
 	tape, err := tepra.LookupTape(width)
 	if err != nil {

@@ -37,7 +37,8 @@ func TestMCP_createPourLabels(t *testing.T) {
 		"column": "品名",
 		"bold":   true,
 	})
-	if out.Labels != 2 || out.FontSize != 17.5 || out.Path != path || !strings.Contains(out.Message, "TEPRA LINK 2") {
+	// 12 mm tape when left out (#40).
+	if out.Labels != 2 || out.FontSize != 11.5 || out.Path != path || !strings.Contains(out.Message, "on 12 mm tape") {
 		t.Errorf("output %+v", out)
 	}
 	f, err := tepra.ReadFile(path)
@@ -66,7 +67,7 @@ func TestMCP_createLabelPages(t *testing.T) {
 		"path":   path,
 		"labels": []string{"カイロ", "割り箸\nスプーン\nフォーク"},
 	})
-	if out.Labels != 2 || out.FontSize != 11.5 || out.LengthMM < 39 || out.LengthMM > 39.1 {
+	if out.Labels != 2 || out.FontSize != 7.5 || out.LengthMM < 26.3 || out.LengthMM > 26.4 {
 		t.Errorf("output %+v", out)
 	}
 	f, err := tepra.ReadFile(path)
@@ -85,8 +86,8 @@ func TestMCP_createLabelPages(t *testing.T) {
 func TestMCP_createTextLabel(t *testing.T) {
 	session := mcpConnect(t)
 	path := filepath.Join(t.TempDir(), "room.tm2")
-	out := mcpCall(t, session, "create_text_label", map[string]any{"path": path, "text": "会議室A", "font_size": 20, "fill": "shaded", "border": "top-bottom", "border_width": 2.8, "align": "right", "valign": "bottom"})
-	if out.Labels != 1 || out.FontSize != 20 {
+	out := mcpCall(t, session, "create_text_label", map[string]any{"path": path, "text": "会議室A", "font_size": 14, "fill": "shaded", "border": "top-bottom", "border_width": 2.8, "align": "right", "valign": "bottom"})
+	if out.Labels != 1 || out.FontSize != 14 {
 		t.Errorf("output %+v", out)
 	}
 	f, err := tepra.ReadFile(path)
