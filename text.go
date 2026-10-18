@@ -34,7 +34,7 @@ func newTextDocument(tape Tape, text string, c *optionConfig) (Document, error) 
 	for i, frame := range l.texts {
 		line := text
 		if len(l.texts) > 1 {
-			line = layoutLineOf(text, i, len(l.texts))
+			line = layoutLineOf(text, i, len(l.texts), c.verticalAlign)
 		}
 		d := NewTextDrawer(line, frame)
 		d.FontSize = l.size

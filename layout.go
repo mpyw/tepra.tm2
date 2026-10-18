@@ -142,7 +142,13 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 		split = true
 		h := height / float64(lines)
 		for i := range lines {
-			l.texts = append(l.texts, Rect{x, top + float64(i)*h, width, h})
+			// Each box turns in its own frame. Turned 180, the first line
+			// goes at the bottom, so it reads first with the tape turned over.
+			row := i
+			if c.rotation == Rotation180 {
+				row = lines - 1 - i
+			}
+			l.texts = append(l.texts, Rect{x, top + float64(row)*h, width, h})
 		}
 	} else {
 		l.texts = []Rect{textBand}
@@ -196,13 +202,22 @@ func layoutNoRoom(tape Tape, texts []string, c *optionConfig, sideways bool) str
 }
 
 // layoutLineOf returns what frame i of n frames of lines drawn apart shows
-// of text. A text of fewer lines sits in the middle frames, or above the
-// middle when it cannot sit exactly there. The frames around it are "".
+// of text. A text of fewer lines sits in the frames that valign says: the
+// first ones, the last ones, or the middle ones, above the middle when it
+// cannot sit exactly there. The frames around it are "".
 //
 //declscope:shared // pour.go and text.go fill the frames of lines drawn apart
-func layoutLineOf(text string, i, n int) string {
+func layoutLineOf(text string, i, n int, valign VerticalAlign) string {
 	lines := strings.Split(text, "\n")
-	j := i - (n-len(lines))/2
+	var offset int
+	switch valign {
+	case VerticalAlignTop:
+	case VerticalAlignBottom:
+		offset = n - len(lines)
+	default:
+		offset = (n - len(lines)) / 2
+	}
+	j := i - offset
 	if j < 0 || j >= len(lines) {
 		return ""
 	}

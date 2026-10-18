@@ -69,7 +69,7 @@ func NewPour(tape Tape, column string, values []string, opts ...PourOption) (*Fi
 		if len(l.texts) == 1 {
 			return v
 		}
-		return layoutLineOf(v, col, len(l.texts))
+		return layoutLineOf(v, col, len(l.texts), c.verticalAlign)
 	}
 	drawers := l.pictures
 	for col, frame := range l.texts {
