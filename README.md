@@ -404,7 +404,7 @@ Errors of the file system come back as they are, such as `fs.ErrNotExist`.
 | [`ErrBadText`][ErrBadText] | Text that is not UTF-8 |
 | [`ErrBadFile`][ErrBadFile] | A file that is not a `.tm2` file the package can read, or one it cannot encode |
 | [`ErrOverLimit`][ErrOverLimit] | More rows, characters or columns than the app takes, or a label over 3000 mm |
-| [`ErrNoRoom`][ErrNoRoom] | No room on the tape: padding that takes it, too many lines, or a fixed length too short |
+| [`ErrNoRoom`][ErrNoRoom] | No room on the tape: padding that takes it, too many lines, a line too long to run across, a font size too large, or a fixed length too short |
 | [`ErrBadImage`][ErrBadImage] | A picture that is not PNG, JPEG or GIF, or over 8192 by 8192 pixels |
 | [`ErrBadCode`][ErrBadCode] | A value the kind of code cannot hold, such as 13 digits for JAN-13 |
 
