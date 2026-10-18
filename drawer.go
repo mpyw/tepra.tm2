@@ -353,13 +353,17 @@ func drawerIsNil(d Drawer) bool {
 
 // unmarshalDrawer reads a drawer of the type raw names.
 func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
+	// identifier is read as it is, so a drawer of a type this package does
+	// not know is kept whatever its identifier holds.
 	var head struct {
-		Type       string `json:"type"`
-		Identifier string `json:"identifier"`
+		Type       string         `json:"type"`
+		Identifier jsontext.Value `json:"identifier"`
 	}
 	if err := json.Unmarshal(raw, &head); err != nil {
 		return nil, err
 	}
+	var id string
+	idErr := json.Unmarshal(head.Identifier, &id)
 	var d Drawer
 	switch head.Type {
 	case DrawerTypeText:
@@ -376,14 +380,19 @@ func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
 		if err := json.Unmarshal(raw, &r.BaseDrawer); err != nil {
 			r.BaseDrawer = BaseDrawer{} // the JSON is kept whole
 		}
-		r.Identifier = head.Identifier
+		if idErr == nil {
+			r.Identifier = id
+		}
 		return r, nil
+	}
+	if len(head.Identifier) > 0 && idErr != nil {
+		return nil, fmt.Errorf("%s: identifier: %w", head.Type, idErr)
 	}
 	if err := json.Unmarshal(raw, d); err != nil {
 		return nil, fmt.Errorf("%s: %w", head.Type, err)
 	}
 	b := d.Base()
-	b.Identifier = head.Identifier
+	b.Identifier = id
 	// marshalDrawer writes the head itself, so it is not kept twice.
 	unknown, err := drawerWithout(b.Unknown, "type", "identifier", "")
 	if err != nil {

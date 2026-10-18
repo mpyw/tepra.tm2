@@ -244,3 +244,20 @@ func TestParseFile_unknownDrawerWithOddKeys(t *testing.T) {
 		t.Errorf("%+v", r)
 	}
 }
+
+// A drawer of an unknown type is kept whatever its identifier holds. One of
+// a known type must have a string (#39).
+func TestParseFile_identifierNotAString(t *testing.T) {
+	in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[{"type":"shape","identifier":5,"":""}]}]}`
+	f, err := tepra.ParseFile(strings.NewReader(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0]); r.Identifier != "" || !strings.Contains(string(r.JSON), `"identifier":5`) {
+		t.Errorf("%+v", r)
+	}
+	in = strings.Replace(in, `"shape"`, `"text"`, 1)
+	if _, err := tepra.ParseFile(strings.NewReader(in)); !errors.Is(err, tepra.ErrBadFile) {
+		t.Errorf("text drawer: %v, want ErrBadFile", err)
+	}
+}
