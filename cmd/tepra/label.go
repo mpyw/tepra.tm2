@@ -35,7 +35,7 @@ func labelFlags() []cli.Flag {
 		},
 		&cli.IntFlag{
 			Name:  "tape",
-			Value: tepra.Tape18mm.WidthMM,
+			Value: tepra.Tape12mm.WidthMM,
 			Usage: "the tape width in `MM`: 4, 6, 9, 12, 18, 24, 36 or 50",
 		},
 		&cli.FloatFlag{Name: "font-size", HideDefault: true, Usage: "the font `SIZE`; by default the text fills the tape"},

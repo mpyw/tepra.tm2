@@ -68,7 +68,7 @@ tepra text -o sample.tm2 $'サンプル\nテキスト'
 ```
 
 ```text
-wrote sample.tm2: 1 label, 26.7 mm long, on 18 mm tape
+wrote sample.tm2: 1 label, 18.2 mm long, on 12 mm tape
 ```
 
 > [!TIP]
@@ -82,7 +82,7 @@ tepra pages -o pages.tm2 items.csv
 ```
 
 ```text
-wrote pages.tm2: 3 pages, 12.2 to 33.0 mm long, on 18 mm tape
+wrote pages.tm2: 3 pages, 12.0 to 22.5 mm long, on 12 mm tape
 ```
 
 Then [print the file](#print-the-file) from TEPRA LINK 2.
@@ -91,7 +91,7 @@ Then [print the file](#print-the-file) from TEPRA LINK 2.
 
 ```go
 f, err := tepra.NewPages(
-	tepra.Tape18mm,
+	tepra.Tape12mm,
 	[]string{"1行目\n2行目", "1行目"},
 	tepra.WithAlign(tepra.AlignCenter),
 )
@@ -193,7 +193,7 @@ tepra pour -o items.tm2 items.csv
 ```
 
 ```text
-wrote items.tm2: 3 labels, 12.2 mm each, on 18 mm tape
+wrote items.tm2: 3 labels, 12.0 mm each, on 12 mm tape
 ```
 
 A QR code per URL, one label each:
@@ -203,7 +203,7 @@ tepra pour --code qr -o qr.tm2 urls.csv
 ```
 
 ```text
-wrote qr.tm2: 2 labels, 17.2 mm each, on 18 mm tape
+wrote qr.tm2: 2 labels, 12.2 mm each, on 12 mm tape
 ```
 
 A label of a fixed length, with a rounded border:
@@ -213,7 +213,7 @@ tepra text --length 60 --border rounded --align center -o fixed.tm2 サンプル
 ```
 
 ```text
-wrote fixed.tm2: 1 label, 60.0 mm long, on 18 mm tape
+wrote fixed.tm2: 1 label, 60.0 mm long, on 12 mm tape
 ```
 
 Text turned 90 degrees, and text in white on black:
@@ -224,8 +224,8 @@ tepra text --fill inverted --bold -o inverted.tm2 サンプル
 ```
 
 ```text
-wrote turned.tm2: 1 label, 12.0 mm long, on 18 mm tape
-wrote inverted.tm2: 1 label, 51.4 mm long, on 18 mm tape
+wrote turned.tm2: 1 label, 12.0 mm long, on 12 mm tape
+wrote inverted.tm2: 1 label, 34.5 mm long, on 12 mm tape
 ```
 
 ### The CSV file
@@ -267,7 +267,7 @@ In `pages` and `pour` they apply to every label.
 | --- | --- | --- |
 | `-o`, `--output` | (required) | The `.tm2` file to write. Its name, without `.tm2`, names the label in the app |
 | `-f`, `--force` | off | Replace the file when it exists |
-| `--tape` | `18` | Tape width in mm: `4`, `6`, `9`, `12`, `18`, `24`, `36` or `50` |
+| `--tape` | `12` | Tape width in mm: `4`, `6`, `9`, `12`, `18`, `24`, `36` or `50` |
 | `--font-size` | fit | Font size in points. By default the text fills the tape |
 | `--bold` | off | Bold text |
 | `--align` | `left` | Where each line goes across: `left`, `center` or `right` |
@@ -302,10 +302,10 @@ It reads files the app wrote, too.
 
 ```text
 $ tepra inspect items.tm2
-file:    items.tm2 (version 2.0.0, saved 2026/10/18 06:12)
-tape:    18 mm, pour, label 12.2 mm long, margin 1.0 mm
+file:    items.tm2 (version 2.0.0, saved 2026/10/18 10:15)
+tape:    12 mm, pour, label 12.0 mm long, margin 1.0 mm
 drawers:
-  pour   x   0.0  y   1.6  w  10.2  h  15.2 mm  column 0, size 11.5, OTBGoStdR-Normal
+  pour   x   1.6  y   1.1  w   6.7  h  10.2 mm  column 0, size 7.5, OTBGoStdR-Normal
 rows:    3, column "Label"
     1  1行目 / 2行目 / 3行目
     2  1行目 / 2行目
@@ -316,19 +316,19 @@ A file of pages shows each page. Pages count from 1, as in the app:
 
 ```text
 $ tepra inspect pages.tm2
-file:    pages.tm2 (version 2.0.0, saved 2026/10/18 06:12)
+file:    pages.tm2 (version 2.0.0, saved 2026/10/18 10:15)
 page 1:
-tape:    18 mm, plain, label 12.2 mm long, margin 1.0 mm
+tape:    12 mm, plain, label 12.0 mm long, margin 1.0 mm
 drawers:
-  text   x   0.0  y   1.6  w  10.2  h  15.2 mm  size 11.5, OTBGoStdR-Normal, "1行目\n2行目\n3行目"
+  text   x   1.6  y   1.1  w   6.7  h  10.2 mm  size 7.5, OTBGoStdR-Normal, "1行目\n2行目\n3行目"
 page 2:
-tape:    18 mm, plain, label 17.5 mm long, margin 1.0 mm
+tape:    12 mm, plain, label 12.2 mm long, margin 1.0 mm
 drawers:
-  text   x   0.0  y   1.6  w  15.5  h  15.2 mm  size 17.5, OTBGoStdR-Normal, "1行目\n2行目"
+  text   x   0.0  y   1.1  w  10.2  h  10.2 mm  size 11.5, OTBGoStdR-Normal, "1行目\n2行目"
 page 3:
-tape:    18 mm, plain, label 33.0 mm long, margin 1.0 mm
+tape:    12 mm, plain, label 22.5 mm long, margin 1.0 mm
 drawers:
-  text   x   0.0  y   1.6  w  31.0  h  15.2 mm  size 35, OTBGoStdR-Normal, "1行目"
+  text   x   0.0  y   1.1  w  20.5  h  10.2 mm  size 23, OTBGoStdR-Normal, "1行目"
 ```
 
 ### Functions
@@ -382,7 +382,7 @@ The type of an option says which functions take it:
 
 ```go
 f, err := tepra.NewPour(
-	tepra.Tape18mm,
+	tepra.Tape12mm,
 	"URL",
 	[]string{"https://example.com/"},
 	tepra.WithCode(tepra.CodeQR),
@@ -404,7 +404,7 @@ Errors of the file system come back as they are, such as `fs.ErrNotExist`.
 | [`ErrBadText`][ErrBadText] | Text that is not UTF-8 |
 | [`ErrBadFile`][ErrBadFile] | A file that is not a `.tm2` file the package can read, or one it cannot encode |
 | [`ErrOverLimit`][ErrOverLimit] | More rows, characters or columns than the app takes, or a label over 3000 mm |
-| [`ErrNoRoom`][ErrNoRoom] | No room on the tape: padding that takes it, too many lines, a line too long to run across, a font size too large, or a fixed length too short |
+| [`ErrNoRoom`][ErrNoRoom] | No room on the tape. Padding takes it, or there are too many lines, a line too long to run across, a font size too large, or a fixed length too short |
 | [`ErrBadImage`][ErrBadImage] | A picture that is not PNG, JPEG or GIF, or over 8192 by 8192 pixels |
 | [`ErrBadCode`][ErrBadCode] | A value the kind of code cannot hold, such as 13 digits for JAN-13 |
 

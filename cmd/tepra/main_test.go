@@ -117,7 +117,7 @@ func TestPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "wrote " + out + ": 2 pages, 18.2 to 39.0 mm long, on 18 mm tape\n"; stdout != want {
+	if want := "wrote " + out + ": 2 pages, 12.6 to 26.3 mm long, on 12 mm tape\n"; stdout != want {
 		t.Errorf("stdout %q, want %q", stdout, want)
 	}
 	f, err := tepra.ReadFile(out)
