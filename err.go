@@ -32,7 +32,8 @@ var (
 	// ErrOverLimit is more than the app takes: rows, characters in a cell,
 	// or columns.
 	ErrOverLimit = errors.New("tepra: over the app's limit")
-	// ErrNoRoom is padding that leaves no room on the tape.
+	// ErrNoRoom is no room on the tape for what is on a label: padding that
+	// takes it, too many lines, or a fixed length too short.
 	ErrNoRoom = errors.New("tepra: no room on the tape")
 	// ErrBadImage is a picture that cannot be read as PNG, JPEG or GIF.
 	ErrBadImage = errors.New("tepra: bad picture")
