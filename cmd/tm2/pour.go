@@ -29,7 +29,10 @@ func pourCommand() *cli.Command {
 		Description: "Each row is a label; blank lines are skipped. A value in double quotes may hold\n" +
 			"line breaks, which break the label into lines, and commas.\n" +
 			"The labels share one frame, sized for the longest. Open the file in TEPRA LINK 2,\n" +
-			"where the labels show in its pour (流し込み) form.",
+			"where the labels show in its pour (流し込み) form.\n" +
+			"\n" +
+			"Use pour for codes. For a list of text, pages with --length lays it out better:\n" +
+			"the app shows poured text at the left of its frame, whatever --align says.",
 		Flags: append(labelFlags(),
 			&cli.StringFlag{
 				Name:  "code",

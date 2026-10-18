@@ -17,6 +17,11 @@ const (
 // titled column. A value may hold line breaks ("\n"). All the labels share
 // one frame, sized for the longest value.
 //
+// Use NewPour for codes ([WithCode]). For a list of text, [NewPages] with
+// [WithLengthMM] lays the labels out better: the app shows poured text at the
+// left of its frame whatever [WithAlign] says, and inverted fill only behind
+// the letters.
+//
 // Inverted text of more than one line is poured from a column per line:
 // column, then column 2, column 3 and on.
 //
