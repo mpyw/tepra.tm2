@@ -128,7 +128,7 @@ func stretchImage(data []byte, w, h float64) ([]byte, error) {
 // decodeImage reads a PNG, JPEG or GIF picture, and returns it as a PNG with
 // its size in pixels. The app stores pictures as PNG.
 //
-//declscope:shared // layout.go puts the icon and the background on a label
+//declscope:shared // layout.go puts the icon and the background on a label, and patch.go a picture a patch gives
 func decodeImage(data []byte) (pngData []byte, width, height int, err error) {
 	if err := imageCheckSize(data); err != nil {
 		return nil, 0, 0, err

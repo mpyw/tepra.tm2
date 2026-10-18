@@ -42,6 +42,9 @@ var (
 	// ErrBadCode is a value that cannot be shown as the kind of code asked
 	// for.
 	ErrBadCode = errors.New("tm2: bad value for a code")
+	// ErrBadPatch is an operation File.Patch cannot apply, or a file the
+	// operations make that is no .tm2 file.
+	ErrBadPatch = errors.New("tm2: bad patch")
 )
 
 // errIndexed collects the errors of the items of a list, numbered from 1,
