@@ -286,3 +286,44 @@ func TestLayout_noRoomWithAFontSize(t *testing.T) {
 		t.Errorf("no padding: %v", err)
 	}
 }
+
+// Inverted lines turned 180 read in order with the tape turned over: the
+// first line in the bottom box (#53).
+func TestInverted_turned180(t *testing.T) {
+	f, err := tepra.NewText(tepra.Tape18mm, "ONE\nTWO", tepra.WithFill(tepra.FillInverted), tepra.WithRotation(tepra.Rotation180))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var one, two *tepra.TextDrawer
+	for _, d := range f.Documents[0].Drawers {
+		if d, ok := d.(*tepra.TextDrawer); ok {
+			switch d.Text {
+			case "ONE":
+				one = d
+			case "TWO":
+				two = d
+			}
+		}
+	}
+	if one == nil || two == nil || one.Frame[1] <= two.Frame[1] {
+		t.Errorf("ONE %v, TWO %v; want ONE below", one, two)
+	}
+}
+
+// In inverted pour, a value of fewer lines follows the vertical alignment
+// (#53).
+func TestInvertedPour_verticalAlign(t *testing.T) {
+	for valign, want := range map[tepra.VerticalAlign][3]string{
+		tepra.VerticalAlignTop:    {"X", "", ""},
+		tepra.VerticalAlignMiddle: {"", "X", ""},
+		tepra.VerticalAlignBottom: {"", "", "X"},
+	} {
+		f, err := tepra.NewPour(tepra.Tape18mm, "c", []string{"A\nB\nC", "X"}, tepra.WithFill(tepra.FillInverted), tepra.WithVerticalAlign(valign))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := [3]string(f.TableData[1][:3]); got != want {
+			t.Errorf("%v: row %q, want %q", valign, got, want)
+		}
+	}
+}
