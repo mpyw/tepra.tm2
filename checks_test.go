@@ -100,8 +100,9 @@ func TestLengthMM_tooShortForTheText(t *testing.T) {
 
 // A label of automatic length is at most 3000 mm, as a fixed one (#5).
 func TestLayout_tooLong(t *testing.T) {
-	if _, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithFontSize(1e300)); !errors.Is(err, tepra.ErrOverLimit) {
-		t.Errorf("font size 1e300: %v, want ErrOverLimit", err)
+	// A huge font size is too large for the tape first (#54).
+	if _, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithFontSize(1e300)); !errors.Is(err, tepra.ErrNoRoom) {
+		t.Errorf("font size 1e300: %v, want ErrNoRoom", err)
 	}
 	if _, err := tepra.NewText(tepra.Tape18mm, strings.Repeat("あ", 500)); !errors.Is(err, tepra.ErrOverLimit) {
 		t.Errorf("500 characters: %v, want ErrOverLimit", err)
@@ -325,5 +326,20 @@ func TestInvertedPour_verticalAlign(t *testing.T) {
 		if got := [3]string(f.TableData[1][:3]); got != want {
 			t.Errorf("%v: row %q, want %q", valign, got, want)
 		}
+	}
+}
+
+// A font size larger than fits the tape is ErrNoRoom, with the size that
+// fits (#54).
+func TestFontSize_tooLarge(t *testing.T) {
+	_, err := tepra.NewText(tepra.Tape18mm, "a", tepra.WithFontSize(200))
+	if !errors.Is(err, tepra.ErrNoRoom) || !strings.Contains(err.Error(), "up to 35 fits") {
+		t.Errorf("%v, want ErrNoRoom, up to 35", err)
+	}
+	if _, err := tepra.NewText(tepra.Tape18mm, "a", tepra.WithFontSize(35)); err != nil {
+		t.Errorf("35: %v", err)
+	}
+	if _, err := tepra.NewPour(tepra.Tape18mm, "c", []string{"a\nb"}, tepra.WithFontSize(20)); !errors.Is(err, tepra.ErrNoRoom) {
+		t.Errorf("two lines at 20: %v, want ErrNoRoom", err)
 	}
 }

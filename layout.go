@@ -87,8 +87,15 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 		size, width = layoutText(texts, height, c.fontSize, sideways)
 		// A font size given is above 0, so the room is checked by the size
 		// that would fit: with no room for any, there is none for the given.
-		if fit, _ := layoutText(texts, height, 0, sideways); fit <= 0 {
+		fit, _ := layoutText(texts, height, 0, sideways)
+		if fit <= 0 {
 			return labelLayout{}, fmt.Errorf("%w: %s", ErrNoRoom, layoutNoRoom(tape, texts, c, sideways))
+		}
+		// A size larger than fits makes a frame as long as that text, which
+		// the app then fits to the frame's height: smaller than asked, on a
+		// label longer than it needs.
+		if c.fontSize > fit {
+			return labelLayout{}, fmt.Errorf("%w: font size %v is too large for %d mm tape; up to %v fits", ErrNoRoom, c.fontSize, tape.WidthMM, fit)
 		}
 	case CodeQR:
 		size, width = layoutCodeFontSize, height
