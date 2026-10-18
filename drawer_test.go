@@ -56,7 +56,9 @@ func TestDrawers_imageIsBase64(t *testing.T) {
 }
 
 func TestDrawers_rejectsBadDrawers(t *testing.T) {
-	for _, in := range []string{`{}`, `[1]`, `[{"type":"text","TIText":1}]`} {
+	// A drawer that is not an object is kept as a RawDrawer (#45). What
+	// fails is drawers that are not a list, and a known type of bad fields.
+	for _, in := range []string{`{}`, `[{"type":"text","TIText":1}]`} {
 		var ds tepra.Drawers
 		if err := json.Unmarshal([]byte(in), &ds); err == nil {
 			t.Errorf("%s: no error", in)
