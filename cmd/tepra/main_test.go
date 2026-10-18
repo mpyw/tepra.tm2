@@ -589,14 +589,20 @@ func TestLabelName(t *testing.T) {
 	}
 }
 
-// The CLI writes no label with no name, as MCP does not (#37).
-func TestText_outputWithNoName(t *testing.T) {
-	out := filepath.Join(t.TempDir(), ".tm2")
-	if _, err := runMain(t, "", "text", "-o", out, "a"); err == nil {
-		t.Error("no error")
+// The CLI writes a .tm2 file with a name only, as MCP does (#37, #55).
+func TestText_outputNotTM2(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{".tm2", "out.txt", "out"} {
+		out := filepath.Join(dir, name)
+		if _, err := runMain(t, "", "text", "-o", out, "a"); err == nil || !strings.Contains(err.Error(), "must name a .tm2 file") {
+			t.Errorf("%s: %v", name, err)
+		}
+		if _, err := os.Stat(out); !errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("%s: a file was written: %v", name, err)
+		}
 	}
-	if _, err := os.Stat(out); !errors.Is(err, fs.ErrNotExist) {
-		t.Errorf("a file was written: %v", err)
+	if _, err := runMain(t, "", "text", "-o", filepath.Join(dir, "UP.TM2"), "a"); err != nil {
+		t.Errorf("UP.TM2: %v", err)
 	}
 }
 
