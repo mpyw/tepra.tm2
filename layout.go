@@ -180,7 +180,8 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 // would fit without it, or else the lines, too many down the tape or too
 // long across it.
 func layoutNoRoom(tape Tape, texts []string, c *optionConfig, sideways bool) string {
-	if size, _ := layoutText(texts, tape.PrintableHeight, c.fontSize, sideways); c.paddingMM > 0 && size > 0 {
+	// Fitted, as layoutLabel checks the room: a size given always fits.
+	if size, _ := layoutText(texts, tape.PrintableHeight, 0, sideways); c.paddingMM > 0 && size > 0 {
 		return fmt.Sprintf("padding of %v mm leaves no room for text on %d mm tape", c.paddingMM, tape.WidthMM)
 	}
 	cause := "too many lines"

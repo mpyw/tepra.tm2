@@ -279,3 +279,19 @@ func TestParseFile_drawerOfNoType(t *testing.T) {
 		}
 	}
 }
+
+// A drawer whose type is not a string keeps its base fields, as one of an
+// unknown type does (#50).
+func TestParseFile_drawerOfNoTypeKeepsItsFrame(t *testing.T) {
+	for _, drawer := range []string{`{"type":5,"frame":[10,2,3,4],"identifier":"id"}`, `{"frame":[10,2,3,4],"identifier":"id"}`} {
+		in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[` + drawer + `]}]}`
+		f, err := tepra.ParseFile(strings.NewReader(in))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0])
+		if r.Frame != (tepra.Rect{10, 2, 3, 4}) || r.Identifier != "id" || r.Type != "" {
+			t.Errorf("%s: %+v", drawer, r.BaseDrawer)
+		}
+	}
+}
