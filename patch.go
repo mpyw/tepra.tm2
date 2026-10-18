@@ -45,8 +45,9 @@ type PatchOp struct {
 //   - The empty key after a drawer's identifier stays as the app writes it.
 //   - A document or a drawer with no identifier, or one that another
 //     before it has, as a copy has, gets a new one.
-//   - A text box shows its placeholder when it has no text, as the app
-//     sets it, and its text when it has some.
+//   - A text box with text shows it, not its placeholder. A box with no
+//     text keeps its HasPlaceholder: tm2's own border box is empty, with
+//     no placeholder.
 //   - With more than one document, each has MultiplePage set, as NewPages
 //     sets it: the app lists the pages only then. A CurrentPage past the
 //     last document is the last.
@@ -106,7 +107,16 @@ func (f *File) patchFix(old *File) error {
 		}
 	}
 	f.CurrentPage = min(f.CurrentPage, len(f.Documents)-1)
+	// A drawer of a type tm2 does not know keeps its identifier, so no
+	// drawer before it may take it.
 	seen := map[string]bool{}
+	for _, doc := range f.Documents {
+		for _, d := range doc.Drawers {
+			if _, raw := d.(*RawDrawer); raw {
+				seen[d.Base().Identifier] = true
+			}
+		}
+	}
 	fresh := func(id *string) {
 		if *id == "" || seen[*id] {
 			*id = newUUID()
@@ -118,16 +128,14 @@ func (f *File) patchFix(old *File) error {
 		fresh(&doc.Identifier)
 		for j, d := range doc.Drawers {
 			if _, raw := d.(*RawDrawer); raw {
-				// Its identifier is written as it was read.
-				seen[d.Base().Identifier] = true
-				continue
+				continue // it is written as it was read
 			}
 			fresh(&d.Base().Identifier)
 			switch d := d.(type) {
 			case *TextDrawer:
-				d.HasPlaceholder = d.Text == ""
+				d.HasPlaceholder = d.HasPlaceholder && d.Text == ""
 			case *PourDrawer:
-				d.HasPlaceholder = d.Text == ""
+				d.HasPlaceholder = d.HasPlaceholder && d.Text == ""
 			}
 			img, ok := d.(*ImageDrawer)
 			if !ok || len(img.Image) == 0 || oldImages[string(img.Image)] {
@@ -274,7 +282,8 @@ func (s *patchShape) check(root *patchNode) error {
 				}
 				continue
 			}
-			k := slices.IndexFunc(raws, d.equal)
+			// Byte for byte: it is written as it was read.
+			k := slices.IndexFunc(raws, func(r *patchNode) bool { return bytes.Equal(r.bytes(), d.bytes()) })
 			if k < 0 {
 				return fmt.Errorf("%w: %s is a drawer of type %q, which tm2 does not know; it can only be one the file has, once", ErrBadPatch, path, typ)
 			}

@@ -18,11 +18,24 @@ func TestFilePatch_noOperationsWritesTheSame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// tm2's own files, with a border: an empty box with no placeholder.
+	text, err := tm2.NewText(tm2.Tape12mm, "abc", tm2.WithBorder(tm2.BorderBox))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pour, err := tm2.NewPour(tm2.Tape12mm, "Label", []string{"a", "b"}, tm2.WithBorder(tm2.BorderRounded))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]*tm2.File{"NewText": text, "NewPour": pour}
 	for _, path := range paths {
 		f, err := tm2.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
+		files[path] = f
+	}
+	for path, f := range files {
 		var want, got bytes.Buffer
 		if _, err := f.WriteTo(&want); err != nil {
 			t.Fatal(err)
@@ -298,9 +311,10 @@ func TestFilePatch_identifiersAndPlaceholders(t *testing.T) {
 	if a.Identifier == "" || b.Identifier == "" || a.Identifier == b.Identifier {
 		t.Errorf("identifiers %q, %q", a.Identifier, b.Identifier)
 	}
-	// The app shows the placeholder instead of the text while it is set.
-	if !fixtureAs[*tm2.TextDrawer](t, ds[0]).HasPlaceholder || !a.HasPlaceholder || b.HasPlaceholder {
-		t.Error("placeholder not as the text")
+	// A box with no text keeps what it had: no placeholder, as tm2 makes
+	// a border box.
+	if fixtureAs[*tm2.TextDrawer](t, ds[0]).HasPlaceholder || a.HasPlaceholder || b.HasPlaceholder {
+		t.Error("a placeholder set")
 	}
 	if len(f.TableHeader) != tm2.FileTableColumns {
 		t.Errorf("%d titles", len(f.TableHeader))
@@ -337,6 +351,19 @@ func TestFilePatch_keepsRawDrawers(t *testing.T) {
 	}
 	if d := fixtureAs[*tm2.RawDrawer](t, f.Documents[0].Drawers[1]); d.Type != "shape" || d.Identifier != "x" {
 		t.Errorf("raw drawer %+v", d)
+	}
+	// No drawer before it takes its identifier.
+	if err := f.Patch(patchOp("replace", "/documents/0/drawers/0/identifier", `"x"`)); err != nil {
+		t.Fatal(err)
+	}
+	if id := f.Documents[0].Drawers[0].Base().Identifier; id == "x" {
+		t.Error("two drawers of identifier x")
+	}
+	// Its numbers stay as they are written.
+	g := patchFixture(t)
+	g.Documents[0].Drawers = append(g.Documents[0].Drawers, &tm2.RawDrawer{Type: "shape", JSON: jsontext.Value(`{"type":"shape","v":1}`)})
+	if err := g.Patch(patchOp("replace", "/documents/0/drawers/1/v", `1.0`)); !errors.Is(err, tm2.ErrBadPatch) {
+		t.Errorf("1 made 1.0: %v", err)
 	}
 	// It may move, but not be copied, nor changed.
 	if err := f.Patch(tm2.PatchOp{Op: "move", From: "/documents/0/drawers/1", Path: "/documents/0/drawers/0"}); err != nil {

@@ -150,7 +150,7 @@ const mcpEditDescription = "Change a .tm2 file by a JSON Patch (RFC 6902) on the
 	"A whole document or drawer put in place needs every key it has; replace the values of its keys instead. " +
 	`A drawer added to /documents/N/drawers needs only its "type" (text, pour or image) and the keys to change; ` +
 	"it starts as the app makes one, in the whole label's frame. A copy gets a new identifier. " +
-	"A text box shows its text once it has some (hasPlaceholder follows TIText). " +
+	"A text box shows its text once it has some (hasPlaceholder is cleared). " +
 	"Nothing is laid out again: set frame (x, y, width, height in points, 1 mm = 2.835 points) yourself. " +
 	"A text box fits its text to its frame unless sizePriority is set. " +
 	"Values: TIAlignment 0 left, 1 center, 2 right; TIVerticalAlignment 0 top, 1 middle, 2 bottom; " +
