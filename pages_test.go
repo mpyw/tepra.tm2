@@ -41,3 +41,25 @@ func TestNewPages_rejects(t *testing.T) {
 		t.Errorf("empty page: %v, want ErrNoText on page 2, and ErrInvalidOptions", err)
 	}
 }
+
+func TestNewPages_reportsAllLayoutErrors(t *testing.T) {
+	texts := []string{
+		"A",
+		"Very long text on page 2",
+		"Very long text on page 3",
+	}
+	_, err := tepra.NewPages(tepra.Tape18mm, texts, tepra.WithLengthMM(20), tepra.WithFontSize(20))
+	if err == nil {
+		t.Fatal("no error")
+	}
+	if !errors.Is(err, tepra.ErrNoRoom) {
+		t.Errorf("got %v, want ErrNoRoom", err)
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "page 2:") || !strings.Contains(msg, "page 3:") {
+		t.Errorf("error %q should mention both page 2 and page 3", msg)
+	}
+	if strings.Contains(msg, "page 1:") {
+		t.Errorf("page 1 should fit, got %q", msg)
+	}
+}

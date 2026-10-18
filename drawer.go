@@ -198,7 +198,7 @@ type ImageDrawer struct {
 func NewImageDrawer(png []byte, frame Rect) *ImageDrawer {
 	return &ImageDrawer{
 		BaseDrawer:     newBaseDrawer(frame),
-		Image:          png,
+		Image:          bytes.Clone(png),
 		ImageKind:      3,
 		ImageMode:      ImageModeThreshold,
 		ImageThreshold: DefaultImageThreshold,
@@ -279,9 +279,33 @@ func (ds *Drawers) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, ds)
 }
 
+// isNilDrawer reports whether d is a nil Drawer, including typed nils.
+func isNilDrawer(d Drawer) bool {
+	if d == nil {
+		return true
+	}
+	switch d := d.(type) {
+	case *TextDrawer:
+		return d == nil
+	case *PourDrawer:
+		return d == nil
+	case *ImageDrawer:
+		return d == nil
+	case *RawDrawer:
+		return d == nil
+	}
+	return false
+}
+
 // marshalDrawer writes d to enc.
 func marshalDrawer(enc *jsontext.Encoder, d Drawer) error {
+	if isNilDrawer(d) {
+		return fmt.Errorf("nil: %w", ErrCrashesApp)
+	}
 	if r, ok := d.(*RawDrawer); ok {
+		if len(r.JSON) == 0 {
+			return fmt.Errorf("no JSON: %w", ErrCrashesApp)
+		}
 		return enc.WriteValue(r.JSON)
 	}
 	if err := checkDrawer(d); err != nil {
@@ -356,6 +380,9 @@ func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
 
 // checkDrawer reports a field of d that crashes the app.
 func checkDrawer(d Drawer) error {
+	if isNilDrawer(d) {
+		return fmt.Errorf("nil: %w", ErrCrashesApp)
+	}
 	if r := d.Base().Rotate; !r.Valid() {
 		return fmt.Errorf("%v is not a rotation: %w", r, ErrCrashesApp)
 	}

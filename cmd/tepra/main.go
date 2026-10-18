@@ -57,18 +57,36 @@ func mainExitCode(w io.Writer, err error) int {
 	case isExit:
 		msg, code = strings.TrimSpace(err.Error()), exit.ExitCode()
 	case err != nil:
-		// Errors of package tepra say "tepra: " already, even when wrapped.
-		msg, code = strings.ReplaceAll(err.Error(), "tepra: ", ""), 1
+		msg, code = err.Error(), 1
 	}
 	if msg == "" {
 		return code
 	}
 	// Errors joined together come a line each.
 	for line := range strings.Lines(msg) {
+		line = strings.TrimSuffix(line, "\n")
+		if !isExit {
+			line = cleanLine(line)
+		}
 		// A failed write to stderr has nowhere to be reported.
-		_, _ = fmt.Fprintf(w, "tepra: %s\n", strings.TrimSuffix(line, "\n"))
+		_, _ = fmt.Fprintf(w, "tepra: %s\n", line)
 	}
 	return code
+}
+
+// cleanLine removes the "tepra: " prefix of errors from package tepra, leaving
+// user values as they are.
+func cleanLine(line string) string {
+	line = strings.TrimPrefix(line, "tepra: ")
+	for {
+		idx := strings.Index(line, ": tepra: ")
+		quote := strings.IndexByte(line, '"')
+		if idx < 0 || (quote >= 0 && idx > quote) {
+			break
+		}
+		line = line[:idx] + ": " + line[idx+len(": tepra: "):]
+	}
+	return line
 }
 
 // version is the release, set by goreleaser with -ldflags "-X

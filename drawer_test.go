@@ -159,3 +159,34 @@ func TestDrawers_rejectsRotationsAndFacesTheAppCrashesOn(t *testing.T) {
 		}
 	}
 }
+
+func TestDrawers_rejectsNilAndEmptyRaw(t *testing.T) {
+	tests := []struct {
+		name string
+		ds   tepra.Drawers
+	}{
+		{"nil drawer", tepra.Drawers{nil}},
+		{"typed nil TextDrawer", tepra.Drawers{(*tepra.TextDrawer)(nil)}},
+		{"typed nil PourDrawer", tepra.Drawers{(*tepra.PourDrawer)(nil)}},
+		{"typed nil ImageDrawer", tepra.Drawers{(*tepra.ImageDrawer)(nil)}},
+		{"typed nil RawDrawer", tepra.Drawers{(*tepra.RawDrawer)(nil)}},
+		{"RawDrawer with no JSON", tepra.Drawers{&tepra.RawDrawer{Type: "shape"}}},
+	}
+	for _, tt := range tests {
+		if _, err := json.Marshal(tt.ds); !errors.Is(err, tepra.ErrCrashesApp) {
+			t.Errorf("%s: marshal %v, want ErrCrashesApp", tt.name, err)
+		}
+	}
+
+	for _, tt := range tests {
+		f, err := tepra.NewText(tepra.Tape18mm, "x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Documents[0].Drawers = tt.ds
+		var buf bytes.Buffer
+		if _, err := f.WriteTo(&buf); !errors.Is(err, tepra.ErrCrashesApp) {
+			t.Errorf("%s: WriteTo %v, want ErrCrashesApp", tt.name, err)
+		}
+	}
+}

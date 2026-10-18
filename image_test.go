@@ -1,6 +1,7 @@
 package tepra_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -41,5 +42,27 @@ func TestOptions_imageMode(t *testing.T) {
 	}
 	if img := fixtureAs[*tepra.ImageDrawer](t, f.Documents[0].Drawers[0]); img.ImageMode != tepra.ImageModeThreshold || img.ImageThreshold != tepra.DefaultImageThreshold {
 		t.Errorf("default: mode %v, threshold %d", img.ImageMode, img.ImageThreshold)
+	}
+}
+
+func TestWithIcon_isolatesCallerBuffer(t *testing.T) {
+	pic := fixturePicture(t, 10, 10, false)
+	f, err := tepra.NewText(tepra.Tape18mm, "x", tepra.WithIcon(pic))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var before bytes.Buffer
+	if _, err := f.WriteTo(&before); err != nil {
+		t.Fatal(err)
+	}
+	for i := range pic {
+		pic[i] = 0
+	}
+	var after bytes.Buffer
+	if _, err := f.WriteTo(&after); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(after.Bytes(), before.Bytes()) {
+		t.Error("modifying the caller's picture buffer changed the file")
 	}
 }

@@ -125,7 +125,7 @@ func decodeImage(data []byte) (pngData []byte, width, height int, err error) {
 		return nil, 0, 0, fmt.Errorf("%s picture has no pixels", format)
 	}
 	if format == "png" {
-		return data, b.Dx(), b.Dy(), nil
+		return bytes.Clone(data), b.Dx(), b.Dy(), nil
 	}
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {

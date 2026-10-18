@@ -2,7 +2,10 @@
 
 package tepra
 
-import "time"
+import (
+	"bytes"
+	"time"
+)
 
 // WithName names the file in the app, without ".tm2". It is "label" by
 // default.
@@ -117,12 +120,14 @@ func WithBorderWidth(w float64) Option {
 // WithIcon puts a PNG, JPEG or GIF picture before the text, as high as the
 // tape prints, keeping its shape.
 func WithIcon(picture []byte) Option {
+	picture = bytes.Clone(picture)
 	return func(c *optionConfig) { c.icon = picture }
 }
 
 // WithBackground stretches a PNG, JPEG or GIF picture under the whole
 // label.
 func WithBackground(picture []byte) Option {
+	picture = bytes.Clone(picture)
 	return func(c *optionConfig) { c.background = picture }
 }
 

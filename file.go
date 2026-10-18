@@ -62,9 +62,13 @@ func newFile(c *optionConfig, docs ...Document) *File {
 		for _, d := range doc.Drawers {
 			switch d := d.(type) {
 			case *TextDrawer:
-				words = append(words, d.Text)
+				if d != nil {
+					words = append(words, d.Text)
+				}
 			case *PourDrawer:
-				words = append(words, d.Text)
+				if d != nil {
+					words = append(words, d.Text)
+				}
 			}
 		}
 	}

@@ -269,12 +269,29 @@ func TestMainExitCode(t *testing.T) {
 		{cli.Exit("quiet", 3), 3, "tepra: quiet\n"},
 		{cli.Exit("", 4), 4, ""},
 		{errors.Join(errors.New("tepra: bad option"), errors.New("value 1: tepra: bad value")), 1, "tepra: bad option\ntepra: value 1: bad value\n"},
+		{errors.New("value 1: tepra: bad value for a code: \"tepra: 12\" as jan13; it takes 12 digits; the app adds the check digit"), 1, "tepra: value 1: bad value for a code: \"tepra: 12\" as jan13; it takes 12 digits; the app adds the check digit\n"},
 	}
 	for _, tt := range tests {
 		var w bytes.Buffer
 		if code := mainExitCode(&w, tt.err); code != tt.code || w.String() != tt.out {
 			t.Errorf("mainExitCode(%v) = %d, %q; want %d, %q", tt.err, code, w.String(), tt.code, tt.out)
 		}
+	}
+}
+
+func TestPour_preservesUserValuePrefix(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "x.tm2")
+	_, err := runMain(t, "tepra: 12\n", "pour", "--code", "jan13", "-o", out)
+	if err == nil {
+		t.Fatal("no error")
+	}
+	var stderr bytes.Buffer
+	code := mainExitCode(&stderr, err)
+	if code != 1 {
+		t.Errorf("code %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), `"tepra: 12"`) {
+		t.Errorf("stderr %q, want \"tepra: 12\" preserved", stderr.String())
 	}
 }
 
