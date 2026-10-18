@@ -307,10 +307,24 @@ func TestMCP_inspectRowsWithoutTitles(t *testing.T) {
 func TestMCP_pathNotTM2(t *testing.T) {
 	session := mcpConnect(t)
 	dir := t.TempDir()
-	for _, path := range []string{filepath.Join(dir, "x.TM2"), filepath.Join(dir, ".tm2")} {
+	for _, path := range []string{filepath.Join(dir, "x.txt"), filepath.Join(dir, ".tm2"), filepath.Join(dir, ".TM2")} {
 		res := mcpCallResult(t, session, "create_text_label", map[string]any{"path": path, "text": "a"})
 		if text := mcpResultText(res); !res.IsError || !strings.Contains(text, "must name a .tm2 file") || strings.Contains(text, "absolute") {
 			t.Errorf("%s: %s", path, text)
 		}
+	}
+}
+
+// MCP takes .TM2 in upper case, as the CLI does (#37).
+func TestMCP_upperCaseTM2(t *testing.T) {
+	session := mcpConnect(t)
+	path := filepath.Join(t.TempDir(), "M.TM2")
+	out := mcpCall(t, session, "create_text_label", map[string]any{"path": path, "text": "a"})
+	f, err := tepra.ReadFile(out.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.FileName != "M.tm2" {
+		t.Errorf("fileName %q, want M.tm2", f.FileName)
 	}
 }
