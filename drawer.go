@@ -353,8 +353,9 @@ func drawerIsNil(d Drawer) bool {
 
 // unmarshalDrawer reads a drawer of the type raw names.
 func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
-	// A drawer that is not an object, or whose type is not a string, is of
-	// no type this package knows: it is kept as it is.
+	// A drawer that is not an object is of no type this package knows: it is
+	// kept as it is. So is one whose type is not a string, below, with the
+	// fields every drawer has read as for any unknown type.
 	if raw.Kind() != '{' {
 		return &RawDrawer{JSON: raw}, nil
 	}
@@ -368,11 +369,12 @@ func unmarshalDrawer(raw jsontext.Value) (Drawer, error) {
 		return nil, err
 	}
 	var typ, id string
-	if err := json.Unmarshal(head.Type, &typ); err != nil {
-		return &RawDrawer{JSON: raw}, nil
-	}
+	typErr := json.Unmarshal(head.Type, &typ)
 	idErr := json.Unmarshal(head.Identifier, &id)
 	var d Drawer
+	if typErr != nil {
+		typ = "" // no type this package knows
+	}
 	switch typ {
 	case DrawerTypeText:
 		d = &TextDrawer{}
