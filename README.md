@@ -64,6 +64,7 @@ The package is named `tm2`.
 
 Ask for labels in your own words.
 The assistant writes a `.tm2` file with the [MCP tools](#mcp-tools).
+It can also read a `.tm2` file and change it, one the app saved too.
 Then [print the file](#print-the-file) from TEPRA LINK 2.
 
 ## Usage: As a Tool
@@ -112,7 +113,8 @@ return f.WriteFile("items.tm2")
 
 - All: [Kinds of label](#kinds-of-label), [Tapes](#tapes), [Layout](#layout), [Print the file](#print-the-file)
 - MCP: [MCP tools](#mcp-tools)
-- Tool: [Commands](#commands), [The CSV file](#the-csv-file), [Tool options](#tool-options), [tm2 inspect](#tm2-inspect)
+- Tool: [Commands](#commands), [The CSV file](#the-csv-file), [Tool options](#tool-options), [tm2 inspect](#tm2-inspect), [tm2 edit](#tm2-edit)
+- All: [Patches](#patches)
 - Library: [Functions](#functions), [Library options](#library-options), [Option types](#option-types), [Errors](#errors), [Reading files](#reading-files)
 
 ### Kinds of label
@@ -172,7 +174,8 @@ What you see when you edit the label in the app:
 | `create_text_label` | text | Writes a file of one label |
 | `create_label_pages` | pages | Writes a file of one page per string |
 | `create_pour_labels` | pour | Writes a pour file: one label per string |
-| `inspect_label` | | Describes a `.tm2` file |
+| `inspect_label` | | Describes a `.tm2` file. With `full`, it also returns every key as JSON, and each picture |
+| `edit_label` | | Changes a `.tm2` file by a [patch](#patches) |
 
 Inputs:
 
@@ -181,6 +184,7 @@ Inputs:
 - `code` and `column` are for `create_pour_labels` only.
 - Paths must be absolute, for the file and for pictures.
 - A file is not replaced unless `overwrite` is true.
+  `edit_label` changes the file at `path` in place without it. It writes to `output` instead when given.
 - A line break in a label is `\n`.
 
 ### Commands
@@ -190,7 +194,8 @@ Inputs:
 | `tm2 text [options] text` | Writes one label. A line break in the text breaks it into lines |
 | `tm2 pages [options] [file.csv]` | Writes a page per row of the file |
 | `tm2 pour [options] [file.csv]` | Writes a pour label per row of the file |
-| `tm2 inspect file.tm2` | Shows what a `.tm2` file holds |
+| `tm2 inspect [--json] file.tm2` | Shows what a `.tm2` file holds |
+| `tm2 edit [-o out.tm2] [-f] file.tm2 [patch.json]` | Changes a `.tm2` file by a [patch](#patches) |
 | `tm2 mcp` | Serves the [MCP tools](#mcp-tools) on stdin and stdout |
 
 A pour file of the same `items.csv`:
@@ -311,8 +316,8 @@ It reads files the app wrote, too.
 $ tm2 inspect items.tm2
 file:    items.tm2 (version 2.0.0, saved 2026/10/18 10:15)
 tape:    12 mm, pour, label 12.0 mm long, margin 1.0 mm
-drawers:
-  pour   x   1.6  y   1.1  w   6.7  h  10.2 mm  column 0, size 7.5, OTBGoStdR-Normal
+drawers: /documents/0/drawers
+   0 pour   x   1.6  y   1.1  w   6.7  h  10.2 mm  column 0, size 7.5, OTBGoStdR-Normal, keeps its size
 rows:    3, column "Label"
     1  1行目 / 2行目 / 3行目
     2  1行目 / 2行目
@@ -326,17 +331,96 @@ $ tm2 inspect pages.tm2
 file:    pages.tm2 (version 2.0.0, saved 2026/10/18 10:15)
 page 1:
 tape:    12 mm, plain, label 12.0 mm long, margin 1.0 mm
-drawers:
-  text   x   1.6  y   1.1  w   6.7  h  10.2 mm  size 7.5, OTBGoStdR-Normal, "1行目\n2行目\n3行目"
+drawers: /documents/0/drawers
+   0 text   x   1.6  y   1.1  w   6.7  h  10.2 mm  size 7.5, OTBGoStdR-Normal, "1行目\n2行目\n3行目"
 page 2:
 tape:    12 mm, plain, label 12.2 mm long, margin 1.0 mm
-drawers:
-  text   x   0.0  y   1.1  w  10.2  h  10.2 mm  size 11.5, OTBGoStdR-Normal, "1行目\n2行目"
+drawers: /documents/1/drawers
+   0 text   x   0.0  y   1.1  w  10.2  h  10.2 mm  size 11.5, OTBGoStdR-Normal, "1行目\n2行目"
 page 3:
 tape:    12 mm, plain, label 22.5 mm long, margin 1.0 mm
-drawers:
-  text   x   0.0  y   1.1  w  20.5  h  10.2 mm  size 23, OTBGoStdR-Normal, "1行目"
+drawers: /documents/2/drawers
+   0 text   x   0.0  y   1.1  w  20.5  h  10.2 mm  size 23, OTBGoStdR-Normal, "1行目"
 ```
+
+- Each drawer starts with its index. `drawers:` gives the path of the list, for a [patch](#patches).
+- After the size and the font come the settings that differ from a new drawer, such as `align center` or `border box 0.7`.
+- `--json` prints every key of the file, at the paths a patch takes. A picture shows as its size.
+
+### tm2 edit
+
+`tm2 edit` changes a `.tm2` file by a [patch](#patches).
+It reads the patch from a file, or from stdin without one.
+Without `-o`, it changes the file in place.
+
+This `patch.json` changes the third row, and centres the text:
+
+```json
+[
+  {"op": "replace", "path": "/tableData/2/0", "value": "4行目"},
+  {"op": "replace", "path": "/documents/0/drawers/0/TIAlignment", "value": 1}
+]
+```
+
+```sh
+tm2 edit items.tm2 patch.json
+```
+
+```text
+wrote items.tm2: 3 labels, 12.0 mm each, on 12 mm tape
+```
+
+### Patches
+
+A patch is a JSON Patch ([RFC 6902](https://www.rfc-editor.org/rfc/rfc6902)).
+It applies to the file as `tm2 inspect --json` prints it.
+`tm2 edit`, `edit_label` and [`File.Patch`][File.Patch] take it.
+
+| Op | What it does |
+| --- | --- |
+| `replace` | Sets the value of a key, or of an item of an array |
+| `add` | Puts an item in an array. `-` as the index puts it last. On a key, it is `replace` |
+| `remove` | Takes an item out of an array |
+| `move`, `copy` | Moves or copies a value from `from` to `path` |
+| `test` | Fails the patch unless the value at `path` is `value` |
+
+What a patch keeps:
+
+| Rule | Why |
+| --- | --- |
+| A key is not added or removed | The app writes every key. A new key would be one no file of the app has |
+| A drawer added starts as the app makes one of its `type`: `text`, `pour` or `image` | It needs only `type` and the keys to change. Its frame is the label's frame |
+| A copy of a document or drawer gets a new identifier | The app gives each one its own |
+| With two or more pages, each gets `MultiplePage` | The app lists the pages only then |
+| A row of `tableData` gets empty cells up to 50 | The app writes 50 columns |
+| A JPEG or GIF picture is made PNG | The app stores pictures as PNG |
+| A value the app crashes on fails the patch | Such a file is never written |
+
+Either every operation applies, or nothing changes.
+
+> [!IMPORTANT]
+> A patch does not lay the label out again. Text made longer keeps its frame, and the app fits it there.
+> Set `frame` too when the size must change. A frame is x, y, width and height in points. 1 mm is 2.835 points.
+
+`image_path` in an operation gives a picture, from a PNG, JPEG or GIF file.
+It is the value of a path that ends in `/image`, or the image of an image drawer added:
+
+```json
+[{"op": "add", "path": "/documents/0/drawers/-", "value": {"type": "image", "frame": [0, 0, 20, 20]}, "image_path": "/path/to/logo.png"}]
+```
+
+The numbers of the keys that show in the app:
+
+| Key | Values |
+| --- | --- |
+| `TIAlignment` | `0` left, `1` center, `2` right |
+| `TIVerticalAlignment` | `0` top, `1` middle, `2` bottom |
+| `TIFillMode` | `0` none, `1` inverted, `2` shaded |
+| `Rotate` | `0` none, `1` 180°, `2` 270°, `3` 90° |
+| `BIType` | `0` none, `1` box, `2` rounded, `3` top-bottom, `4` top, `5` bottom |
+| `Attribute` (pour) | `0` text, `1` QR, `2` CODE39, `3` CODE128, `4` JAN-13 |
+| `imageMode` | `1` diffusion, `2` threshold, `3` screen |
+| `TIFontName` | `OTBGoStdR-Normal` regular, `OTBGoStdB-Normal` bold |
 
 ### Functions
 
@@ -348,6 +432,23 @@ drawers:
 | [`ReadFile(path)`][ReadFile], [`ParseFile(r)`][ParseFile] | A file read back |
 
 A [`File`][File] writes itself with [`WriteFile`][File.WriteFile] or [`WriteTo`][File.WriteTo].
+[`Patch`][File.Patch] changes it by a [patch](#patches).
+
+```go
+f, err := tm2.ReadFile("items.tm2")
+if err != nil {
+	return err
+}
+err = f.Patch(tm2.PatchOp{
+	Op:    "replace",
+	Path:  "/tableData/2/0",
+	Value: jsontext.Value(`"4行目"`),
+})
+if err != nil {
+	return err
+}
+return f.WriteFile("items.tm2")
+```
 
 ### Library options
 
@@ -414,6 +515,7 @@ Errors of the file system come back as they are, such as `fs.ErrNotExist`.
 | [`ErrNoRoom`][ErrNoRoom] | No room on the tape. Padding takes it, or there are too many lines, a line too long to run across, a font size too large, or a fixed length too short |
 | [`ErrBadImage`][ErrBadImage] | A picture that is not PNG, JPEG or GIF, or over 8192 by 8192 pixels |
 | [`ErrBadCode`][ErrBadCode] | A value the kind of code cannot hold, such as 13 digits for JAN-13 |
+| [`ErrBadPatch`][ErrBadPatch] | An operation [`Patch`][File.Patch] cannot apply, such as one that adds a key, or a patch that makes no `.tm2` file |
 
 ### Reading files
 
@@ -437,6 +539,7 @@ The Go gopher was designed by Renée French, under [CC BY 4.0](https://creativec
 [File]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#File
 [File.WriteFile]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#File.WriteFile
 [File.WriteTo]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#File.WriteTo
+[File.Patch]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#File.Patch
 [Tape4mm]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#Tape4mm
 [Tape50mm]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#Tape50mm
 [LookupTape]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#LookupTape
@@ -477,3 +580,4 @@ The Go gopher was designed by Renée French, under [CC BY 4.0](https://creativec
 [ErrNoRoom]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrNoRoom
 [ErrBadImage]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrBadImage
 [ErrBadCode]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrBadCode
+[ErrBadPatch]: https://pkg.go.dev/github.com/mpyw/tepra.tm2#ErrBadPatch

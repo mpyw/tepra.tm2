@@ -23,7 +23,7 @@ func TestMCP_tools(t *testing.T) {
 	for _, tool := range res.Tools {
 		names = append(names, tool.Name)
 	}
-	if got := strings.Join(names, ","); got != "create_label_pages,create_pour_labels,create_text_label,inspect_label" {
+	if got := strings.Join(names, ","); got != "create_label_pages,create_pour_labels,create_text_label,edit_label,inspect_label" {
 		t.Errorf("tools %s", got)
 	}
 }
@@ -226,6 +226,113 @@ func TestMCP_inspectLabel(t *testing.T) {
 	res := mcpCallResult(t, session, "inspect_label", map[string]any{"path": path})
 	if res.IsError || !strings.Contains(mcpResultText(res), "rows:    10, column \"品名\"") {
 		t.Errorf("result %s", mcpResultText(res))
+	}
+}
+
+func TestMCP_inspectLabelFull(t *testing.T) {
+	session := mcpConnect(t)
+	dir := t.TempDir()
+	pic := filepath.Join(dir, "pic.png")
+	if err := os.WriteFile(pic, fixturePicture(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "x.tm2")
+	mcpCall(t, session, "create_text_label", map[string]any{"path": path, "text": "a", "icon_path": pic})
+	res := mcpCallResult(t, session, "inspect_label", map[string]any{"path": path, "full": true})
+	text := mcpResultText(res)
+	if res.IsError || !strings.Contains(text, "drawers: /documents/0/drawers") || !strings.Contains(text, `"TIText": "a"`) {
+		t.Errorf("result %s", text)
+	}
+	var pictures int
+	for _, c := range res.Content {
+		if img, ok := c.(*mcp.ImageContent); ok && img.MIMEType == "image/png" {
+			pictures++
+		}
+	}
+	if pictures != 1 {
+		t.Errorf("%d pictures, want the icon", pictures)
+	}
+	// A file the app would crash on is not written, as JSON either.
+	bad := filepath.Join(dir, "bad.tm2")
+	if err := os.WriteFile(bad, []byte(`{"documents":[{"SettingsTapeWidth":18,"drawers":[]}],"currentPage":3}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if res := mcpCallResult(t, session, "inspect_label", map[string]any{"path": bad, "full": true}); !res.IsError {
+		t.Error("full of a file the app crashes on: no error")
+	}
+	// Without full, the description only.
+	res = mcpCallResult(t, session, "inspect_label", map[string]any{"path": path})
+	if len(res.Content) != 1 {
+		t.Errorf("%d contents", len(res.Content))
+	}
+}
+
+func TestMCP_editLabel(t *testing.T) {
+	session := mcpConnect(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "x.tm2")
+	mcpCall(t, session, "create_text_label", map[string]any{"path": path, "text": "a"})
+
+	// In place, without overwrite.
+	res := mcpCallResult(t, session, "edit_label", map[string]any{
+		"path": path,
+		"operations": []map[string]any{
+			{"op": "replace", "path": "/documents/0/drawers/0/TIText", "value": "b"},
+			{"op": "replace", "path": "/documents/0/drawers/0/BIType", "value": 1},
+			{"op": "copy", "from": "/documents/0", "path": "/documents/-"},
+		},
+	})
+	if text := mcpResultText(res); res.IsError || !strings.Contains(text, "wrote "+path+": 2 pages") || !strings.Contains(text, `"b", border box`) {
+		t.Errorf("result %s", text)
+	}
+	f, err := tm2.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Documents) != 2 || f.Documents[0].Identifier == f.Documents[1].Identifier {
+		t.Errorf("%d documents", len(f.Documents))
+	}
+
+	// To another file, with a picture.
+	pic := filepath.Join(dir, "pic.png")
+	if err := os.WriteFile(pic, fixturePicture(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "y.tm2")
+	args := map[string]any{
+		"path":       path,
+		"output":     out,
+		"operations": []map[string]any{{"op": "add", "path": "/documents/1/drawers/-", "value": map[string]any{"type": "image", "frame": []float64{0, 0, 10, 10}}, "image_path": pic}},
+	}
+	if res := mcpCallResult(t, session, "edit_label", args); res.IsError {
+		t.Fatal(mcpResultText(res))
+	}
+	f, err = tm2.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img, ok := f.Documents[1].Drawers[1].(*tm2.ImageDrawer); !ok || img.Frame != (tm2.Rect{0, 0, 10, 10}) {
+		t.Errorf("drawer %+v, want the picture", f.Documents[1].Drawers[1])
+	}
+	// out is there now.
+	if res := mcpCallResult(t, session, "edit_label", args); !res.IsError || !strings.Contains(mcpResultText(res), "overwrite: true") {
+		t.Errorf("second call: %s", mcpResultText(res))
+	}
+	args["overwrite"] = true
+	if res := mcpCallResult(t, session, "edit_label", args); res.IsError {
+		t.Error(mcpResultText(res))
+	}
+
+	for name, args := range map[string]map[string]any{
+		"relative path":   {"path": "x.tm2", "operations": []any{}},
+		"relative output": {"path": path, "output": "y.tm2", "operations": []any{}},
+		"output not .tm2": {"path": path, "output": filepath.Join(dir, "y.txt"), "operations": []any{}},
+		"relative image":  {"path": path, "operations": []map[string]any{{"op": "replace", "path": "/documents/0/drawers/0/image", "image_path": "pic.png"}}},
+		"bad patch":       {"path": path, "operations": []map[string]any{{"op": "remove", "path": "/fileName"}}},
+	} {
+		if res := mcpCallResult(t, session, "edit_label", args); !res.IsError {
+			t.Errorf("%s: no error", name)
+		}
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 // newUUID returns a random UUID (version 4), as the app gives each document
 // and drawer.
 //
-//declscope:shared // drawer.go and document.go identify what they make
+//declscope:shared // drawer.go and document.go identify what they make, and patch.go what a patch copies
 func newUUID() string {
 	var b [16]byte
 	_, _ = rand.Read(b[:]) // crypto/rand.Read never returns an error

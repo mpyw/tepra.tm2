@@ -4,6 +4,7 @@
 //	tm2 pages -o out.tm2 [file]    a page per line, each fitted to its line
 //	tm2 text -o out.tm2 text       one label; a line break in text breaks it
 //	tm2 inspect file.tm2           what a .tm2 file holds
+//	tm2 edit file.tm2 [patch]      change a .tm2 file by a JSON Patch
 //	tm2 mcp                        an MCP server on stdin and stdout
 //
 // Open the file in TEPRA LINK 2 to print it.
@@ -53,6 +54,7 @@ func newMainCommand() *cli.Command {
 			pagesCommand(),
 			textCommand(),
 			inspectCommand(),
+			editCommand(),
 			mcpCommand(),
 		},
 	}
@@ -73,7 +75,7 @@ func newMainCommand() *cli.Command {
 var mainSentinels = []error{
 	tm2.ErrTapeNotSupported, tm2.ErrUnknownName, tm2.ErrInvalidOptions,
 	tm2.ErrCrashesApp, tm2.ErrBadFile, tm2.ErrBadText, tm2.ErrNoText,
-	tm2.ErrOverLimit, tm2.ErrNoRoom, tm2.ErrBadImage, tm2.ErrBadCode,
+	tm2.ErrOverLimit, tm2.ErrNoRoom, tm2.ErrBadImage, tm2.ErrBadCode, tm2.ErrBadPatch,
 }
 
 // mainMessage is err's message without the "tm2: " of the package's

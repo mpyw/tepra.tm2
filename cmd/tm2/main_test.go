@@ -188,7 +188,8 @@ func TestInspect(t *testing.T) {
 	for _, want := range []string{
 		"file:    test.tm2 (version 2.0.0, saved 2026/10/17 16:39)\n",
 		"tape:    18 mm, pour, label 56.0 mm long, margin 1.0 mm\n",
-		"  pour   x   0.0  y   1.6  w  54.0  h  15.2 mm  column 0, size 17.5, OTBGoStdR-Normal\n",
+		"drawers: /documents/0/drawers\n",
+		"   1 pour   x   0.0  y   1.6  w  54.0  h  15.2 mm  column 0, size 17.5, OTBGoStdR-Normal\n",
 		"rows:    10, column \"品名\"\n",
 		"    2  割り箸 / スプーン / フォーク\n",
 	} {
@@ -211,6 +212,164 @@ func TestVersion(t *testing.T) {
 	}
 	if !strings.HasPrefix(stdout, "tm2 version (devel) (go") {
 		t.Errorf("stdout %q", stdout)
+	}
+}
+
+func TestInspect_json(t *testing.T) {
+	dir := t.TempDir()
+	pic := filepath.Join(dir, "pic.png")
+	if err := os.WriteFile(pic, fixturePicture(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "x.tm2")
+	if _, err := runMain(t, "", "text", "--icon", pic, "--border", "box", "--align", "center", "-o", out, "a"); err != nil {
+		t.Fatal(err)
+	}
+	stdout, err := runMain(t, "", "inspect", out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, "border box 0.7") || !strings.Contains(stdout, "align center") {
+		t.Errorf("inspect\n%s", stdout)
+	}
+	stdout, err = runMain(t, "", "inspect", "--json", out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A frame takes one line, and a picture shows by its size.
+	for _, want := range []string{`"SettingsTapeWidth": 12,`, `"TIText": "a",`, `"tapeForegroundColor": [0, 0, 0, 1],`, `"image": "(picture 1: PNG, 4 by 4 pixels, `} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("no %q in\n%s", want, stdout)
+		}
+	}
+}
+
+func TestInspect_settings(t *testing.T) {
+	f, err := tm2.NewPour(tm2.Tape12mm, "URL", []string{"https://example.com/"},
+		tm2.WithCode(tm2.CodeQR), tm2.WithRotation(tm2.Rotation180), tm2.WithFill(tm2.FillShaded),
+		tm2.WithVerticalAlign(tm2.VerticalAlignTop), tm2.WithVertical(), tm2.WithIcon(fixturePicture(t)),
+		tm2.WithImageMode(tm2.ImageModeDiffusion))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := &f.Documents[0]
+	box := tm2.NewTextDrawer("固", doc.Frame)
+	box.HoldAspect = false
+	box.TapeForegroundColor = tm2.White
+	doc.Drawers = append(doc.Drawers, box)
+	path := filepath.Join(t.TempDir(), "x.tm2")
+	if err := f.WriteFile(path); err != nil {
+		t.Fatal(err)
+	}
+	stdout, err := runMain(t, "", "inspect", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"mode diffusion", "code qr", "valign top", "fill shaded", "vertical", "keeps its size", "rotate 180",
+		`"固", fixed (固), color [1 1 1 1]`,
+	} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("no %q in\n%s", want, stdout)
+		}
+	}
+}
+
+// A file the app would crash on is described, but not as JSON, which
+// would write it.
+func TestInspect_jsonOfAFileTheAppCrashesOn(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "x.tm2")
+	if err := os.WriteFile(path, []byte(`{"documents":[{"SettingsTapeWidth":18,"drawers":[]}],"currentPage":3}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runMain(t, "", "inspect", path); err != nil {
+		t.Error(err)
+	}
+	if _, err := runMain(t, "", "inspect", "--json", path); !errors.Is(err, tm2.ErrCrashesApp) {
+		t.Errorf("--json: %v", err)
+	}
+}
+
+func TestEdit(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "x.tm2")
+	if _, err := runMain(t, "", "text", "-o", path, "a"); err != nil {
+		t.Fatal(err)
+	}
+	// In place, from stdin.
+	stdout, err := runMain(t, `[{"op": "replace", "path": "/documents/0/drawers/0/TIText", "value": "b"}]`, "edit", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(stdout, "wrote "+path+": 1 label") {
+		t.Errorf("stdout %q", stdout)
+	}
+	f, err := tm2.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d, ok := f.Documents[0].Drawers[0].(*tm2.TextDrawer); !ok || d.Text != "b" {
+		t.Errorf("drawer %+v, want text b", f.Documents[0].Drawers[0])
+	}
+
+	// To another file, from a patch file, with a picture.
+	pic := filepath.Join(dir, "pic.png")
+	if err := os.WriteFile(pic, fixturePicture(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	patch := filepath.Join(dir, "patch.json")
+	if err := os.WriteFile(patch, []byte(`[{"op": "add", "path": "/documents/0/drawers/0", "value": {"type": "image"}, "image_path": "`+pic+`"}]`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "y.tm2")
+	if _, err := runMain(t, "", "edit", "-o", out, path, patch); err != nil {
+		t.Fatal(err)
+	}
+	f, err = tm2.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img, ok := f.Documents[0].Drawers[0].(*tm2.ImageDrawer); !ok || !bytes.Equal(img.Image, fixturePicture(t)) {
+		t.Errorf("drawer %T, want the picture", f.Documents[0].Drawers[0])
+	}
+	// The picture replaced.
+	if _, err := runMain(t, `[{"op": "replace", "path": "/documents/0/drawers/0/image", "image_path": "`+pic+`"}]`, "edit", out); err != nil {
+		t.Fatal(err)
+	}
+	// out is there now.
+	if _, err := runMain(t, "", "edit", "-o", out, path, patch); err == nil || !strings.Contains(err.Error(), "--force") {
+		t.Errorf("existing output: %v", err)
+	}
+	if _, err := runMain(t, "", "edit", "-f", "-o", out, path, patch); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestEdit_rejects(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "x.tm2")
+	if _, err := runMain(t, "", "text", "-o", path, "a"); err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct {
+		stdin string
+		args  []string
+	}{
+		"no file":        {"[]", []string{"edit"}},
+		"three files":    {"", []string{"edit", path, "a", "b"}},
+		"missing patch":  {"", []string{"edit", path, filepath.Join(dir, "none.json")}},
+		"not an array":   {`{"op": "remove"}`, []string{"edit", path}},
+		"not .tm2":       {"[]", []string{"edit", "-o", filepath.Join(dir, "x.txt"), path}},
+		"missing file":   {"[]", []string{"edit", filepath.Join(dir, "none.tm2")}},
+		"new key":        {`[{"op": "add", "path": "/foo", "value": 1}]`, []string{"edit", path}},
+		"missing image":  {`[{"op": "replace", "path": "/documents/0/drawers/0/image", "image_path": "none.png"}]`, []string{"edit", path}},
+		"image for text": {`[{"op": "replace", "path": "/documents/0/drawers/0/TIText", "image_path": "` + path + `"}]`, []string{"edit", path}},
+		"image in value": {`[{"op": "replace", "path": "/fileName", "value": "a", "image_path": "` + path + `"}]`, []string{"edit", path}},
+	}
+	for name, tt := range tests {
+		if _, err := runMain(t, tt.stdin, tt.args...); err == nil {
+			t.Errorf("%s: no error", name)
+		}
 	}
 }
 
@@ -403,7 +562,7 @@ func TestInspect_picturesAndUnknownDrawers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"  image  ", "bytes, threshold 128", "  shape  ", "(not known to tm2)"} {
+	for _, want := range []string{" image  ", "bytes, threshold 128", " shape  ", "(not known to tm2)"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("no %q in\n%s", want, stdout)
 		}
