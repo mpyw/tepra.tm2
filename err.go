@@ -13,11 +13,12 @@ import (
 var (
 	// ErrTapeNotSupported is a tape width whose sizes are not known.
 	ErrTapeNotSupported = errors.New("tepra: tape width not supported")
-	// ErrUnknownName is a name ParseFillMode, ParseBorderType, ParseAlign or
-	// ParseVerticalAlign does not know.
+	// ErrUnknownName is a name ParseFillMode, ParseBorderType, ParseAlign,
+	// ParseVerticalAlign, ParseRotation, ParseCodeKind or ParseImageMode
+	// does not know.
 	ErrUnknownName = errors.New("tepra: unknown name")
-	// ErrInvalidOptions is an Option, or options together, that NewPour or
-	// NewText cannot use.
+	// ErrInvalidOptions is an Option, or options together, that NewText,
+	// NewPages or NewPour cannot use.
 	ErrInvalidOptions = errors.New("tepra: invalid options")
 	// ErrCrashesApp is a value TEPRA LINK 2 crashes on. It is not written.
 	ErrCrashesApp = errors.New("tepra: the app crashes on it")
@@ -30,7 +31,7 @@ var (
 	// pour.
 	ErrNoText = errors.New("tepra: no text")
 	// ErrOverLimit is more than the app takes: rows, characters in a cell,
-	// or columns.
+	// columns, or a label over 3000 mm.
 	ErrOverLimit = errors.New("tepra: over the app's limit")
 	// ErrNoRoom is no room on the tape for what is on a label: padding that
 	// takes it, too many lines, or a fixed length too short.
