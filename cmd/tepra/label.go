@@ -195,8 +195,8 @@ func labelPourOptions(opts []tepra.Option, code string) ([]tepra.PourOption, err
 //
 //declscope:shared // pour.go, pages.go and text.go read their flags with it
 func labelOptions(cmd *cli.Command) (tepra.Tape, []tepra.Option, error) {
-	if out := cmd.String("output"); labelName(out) == "" {
-		return tepra.Tape{}, nil, fmt.Errorf("--output must name the file, such as label.tm2: %q", out)
+	if out := cmd.String("output"); !labelIsTM2(out) {
+		return tepra.Tape{}, nil, fmt.Errorf("--output must name a .tm2 file, such as label.tm2: %q", out)
 	}
 	tape, err := tepra.LookupTape(cmd.Int("tape"))
 	if err != nil {
