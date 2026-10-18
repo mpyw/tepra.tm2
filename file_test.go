@@ -261,3 +261,21 @@ func TestParseFile_identifierNotAString(t *testing.T) {
 		t.Errorf("text drawer: %v, want ErrBadFile", err)
 	}
 }
+
+// A drawer that is not an object, or whose type is not a string, is kept as
+// it is (#45).
+func TestParseFile_drawerOfNoType(t *testing.T) {
+	for _, drawer := range []string{`{"type":5,"identifier":"a"}`, `5`, `null`, `"x"`, `[1]`} {
+		in := `{"documents":[{"SettingsTapeWidth":18,"drawers":[` + drawer + `]}]}`
+		f, err := tepra.ParseFile(strings.NewReader(in))
+		if err != nil {
+			t.Errorf("%s: %v", drawer, err)
+			continue
+		}
+		r := fixtureAs[*tepra.RawDrawer](t, f.Documents[0].Drawers[0])
+		var buf bytes.Buffer
+		if _, err := f.WriteTo(&buf); err != nil || !strings.Contains(buf.String(), `"drawers":[`+drawer+`]`) {
+			t.Errorf("%s: written back %v, %s; raw %+v", drawer, err, buf.String(), r)
+		}
+	}
+}
