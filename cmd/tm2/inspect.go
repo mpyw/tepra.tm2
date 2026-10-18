@@ -183,16 +183,17 @@ func inspectJSON(f *tm2.File) (string, [][]byte, error) {
 // inspectIndent returns v, valid JSON at path in the file, a member or an
 // item a line, each line after the first beginning with indent. An array
 // of values that are neither objects nor arrays, such as a frame or a row
-// of tableData, takes one line. A picture is added to pictures, and shown
-// by inspectPicture.
+// of tableData, takes one line. A PNG picture is added to pictures, and
+// shown by its size.
 func inspectIndent(v jsontext.Value, indent, path string, pictures *[][]byte) string {
 	kind := v.Kind()
 	if kind == '"' && inspectImagePath.MatchString(path) {
 		var data string
 		_ = json.Unmarshal(v, &data) // a string of valid JSON reads
-		if png, err := base64.StdEncoding.DecodeString(data); err == nil && len(png) > 0 {
+		png, err := base64.StdEncoding.DecodeString(data)
+		if cfg, format, cfgErr := image.DecodeConfig(bytes.NewReader(png)); err == nil && cfgErr == nil && format == "png" {
 			*pictures = append(*pictures, png)
-			q, _ := json.Marshal(inspectPicture(png, len(*pictures))) // a string encodes
+			q, _ := json.Marshal(fmt.Sprintf("(picture %d: PNG, %d by %d pixels, %d bytes)", len(*pictures), cfg.Width, cfg.Height, len(png))) // a string encodes
 			return string(q)
 		}
 	}
@@ -231,13 +232,4 @@ func inspectIndent(v jsontext.Value, indent, path string, pictures *[][]byte) st
 		inner := indent + "  "
 		return open + "\n" + inner + strings.Join(items, ",\n"+inner) + "\n" + indent + end
 	}
-}
-
-// inspectPicture stands for the picture png, the nth returned.
-func inspectPicture(png []byte, n int) string {
-	size := fmt.Sprintf("%d bytes", len(png))
-	if cfg, _, err := image.DecodeConfig(bytes.NewReader(png)); err == nil {
-		size = fmt.Sprintf("%d by %d pixels, %s", cfg.Width, cfg.Height, size)
-	}
-	return fmt.Sprintf("(picture %d: PNG, %s)", n, size)
 }

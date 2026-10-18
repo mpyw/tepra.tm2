@@ -33,37 +33,52 @@ type PatchOp struct {
 //   - A key is not added to an object, nor removed from one. The app writes
 //     every key, so a key's value is replaced instead. Items of an array
 //     are added and removed freely.
+//   - An object put in place of the file, a document or a drawer, by any
+//     operation, has every key tm2 writes for it, and no other key but
+//     those the file had there. So a drawer's "type" changes only with its
+//     keys. A drawer of a type tm2 does not know is one the file had. It
+//     may move, but not be copied: it is written as it was read, so its
+//     identifier cannot change.
 //   - A drawer added to a document's drawers starts as the app sets a new
 //     one of its "type" (text, pour or image), in the document's frame. The
 //     keys given replace its values. A key it does not have is an error.
-//   - A document or a drawer whose identifier another before it has, as a
-//     copy has, gets a new one.
+//   - The empty key after a drawer's identifier stays as the app writes it.
+//   - A document or a drawer with no identifier, or one that another
+//     before it has, as a copy has, gets a new one.
+//   - A text box shows its placeholder when it has no text, as the app
+//     sets it, and its text when it has some.
 //   - With more than one document, each has MultiplePage set, as NewPages
 //     sets it: the app lists the pages only then. A CurrentPage past the
 //     last document is the last.
 //   - Each row of tableData, and tableHeader, gets empty cells up to
 //     FileTableColumns.
-//   - The picture of an image drawer may be a JPEG or a GIF. It is made a
-//     PNG, as the app stores pictures.
+//   - A picture the patch gives is checked as NewText checks an icon. It
+//     may be a JPEG or a GIF, and is made a PNG, as the app stores
+//     pictures.
 //
 // Patch does not lay the label out again. A drawer moved or a text made
 // longer keeps the frames it was given.
 func (f *File) Patch(ops ...PatchOp) error {
-	b, err := json.Marshal(f)
-	if err != nil {
+	var buf bytes.Buffer
+	if _, err := f.WriteTo(&buf); err != nil {
 		return err
 	}
-	t := &patchTarget{root: patchNodeOf(b)} // json.Marshal writes valid JSON
+	root := patchNodeOf(buf.Bytes()) // WriteTo writes valid JSON
+	shape := patchShapeOf(root)
+	t := &patchTarget{root: root}
 	for i, op := range ops {
 		if err := t.apply(op); err != nil {
 			return fmt.Errorf("operation %d (%s %s): %w", i+1, op.Op, op.Path, err)
 		}
 	}
+	if err := shape.check(t.root); err != nil {
+		return err
+	}
 	g, err := ParseFile(bytes.NewReader(t.root.bytes()))
 	if err != nil {
 		return fmt.Errorf("%w: the file it makes: %w", ErrBadPatch, err)
 	}
-	if err := g.patchFix(); err != nil {
+	if err := g.patchFix(f); err != nil {
 		return err
 	}
 	// What the app would crash on is not written, so it is not made.
@@ -74,8 +89,17 @@ func (f *File) Patch(ops ...PatchOp) error {
 	return nil
 }
 
-// patchFix sets what Patch keeps to in f, the file the operations made.
-func (f *File) patchFix() error {
+// patchFix sets what Patch keeps to in f, the file the operations made
+// of old.
+func (f *File) patchFix(old *File) error {
+	oldImages := map[string]bool{}
+	for _, doc := range old.Documents {
+		for _, d := range doc.Drawers {
+			if img, ok := d.(*ImageDrawer); ok {
+				oldImages[string(img.Image)] = true
+			}
+		}
+	}
 	if len(f.Documents) > 1 {
 		for i := range f.Documents {
 			f.Documents[i].MultiplePage = true
@@ -84,7 +108,7 @@ func (f *File) patchFix() error {
 	f.CurrentPage = min(f.CurrentPage, len(f.Documents)-1)
 	seen := map[string]bool{}
 	fresh := func(id *string) {
-		if *id != "" && seen[*id] {
+		if *id == "" || seen[*id] {
 			*id = newUUID()
 		}
 		seen[*id] = true
@@ -99,8 +123,14 @@ func (f *File) patchFix() error {
 				continue
 			}
 			fresh(&d.Base().Identifier)
+			switch d := d.(type) {
+			case *TextDrawer:
+				d.HasPlaceholder = d.Text == ""
+			case *PourDrawer:
+				d.HasPlaceholder = d.Text == ""
+			}
 			img, ok := d.(*ImageDrawer)
-			if !ok || len(img.Image) == 0 || bytes.HasPrefix(img.Image, patchPNGSignature) {
+			if !ok || len(img.Image) == 0 || oldImages[string(img.Image)] {
 				continue
 			}
 			png, _, _, err := decodeImage(img.Image)
@@ -117,18 +147,13 @@ func (f *File) patchFix() error {
 		}
 		f.TableData[i] = padded
 	}
-	if len(f.TableHeader) > 0 {
-		padded, err := patchPadRow(f.TableHeader)
-		if err != nil {
-			return fmt.Errorf("tableHeader: %w", err)
-		}
-		f.TableHeader = padded
+	padded, err := patchPadRow(f.TableHeader)
+	if err != nil {
+		return fmt.Errorf("tableHeader: %w", err)
 	}
+	f.TableHeader = padded
 	return nil
 }
-
-// patchPNGSignature is how a PNG file starts.
-var patchPNGSignature = []byte("\x89PNG\r\n\x1a\n")
 
 // patchPadRow returns row with empty cells up to FileTableColumns.
 func patchPadRow(row []string) ([]string, error) {
@@ -136,6 +161,136 @@ func patchPadRow(row []string) ([]string, error) {
 		return nil, fmt.Errorf("%d columns, up to %d: %w", len(row), FileTableColumns, ErrOverLimit)
 	}
 	return append(row, make([]string, FileTableColumns-len(row))...), nil
+}
+
+// patchShape is the keys each object of a file may have.
+type patchShape struct {
+	file, document patchKeys
+	// drawers are the keys of the drawers of each type tm2 knows.
+	drawers map[string]patchKeys
+	// raws are the drawers of the file of no type tm2 knows.
+	raws []*patchNode
+}
+
+// patchKeys are the keys of an object: those tm2 writes, all of which it
+// needs, and the others the file had on such an object.
+type patchKeys struct {
+	needed  []string
+	allowed map[string]bool
+}
+
+// patchShapeOf returns the shape of root, a file as WriteTo writes it.
+func patchShapeOf(root *patchNode) *patchShape {
+	// What tm2 writes for each, from objects it makes. A document of no
+	// tape width is still written.
+	b, _ := json.Marshal(&File{Documents: []Document{{}}}) // a file of one document encodes
+	file := patchNodeOf(b)
+	s := &patchShape{
+		file:     patchKeysOf(file),
+		document: patchKeysOf(file.member("documents").items[0]),
+		drawers:  map[string]patchKeys{},
+	}
+	// SavedLength is written only when it is set.
+	s.file.allowed["savedLength"] = true
+	for _, d := range []Drawer{NewTextDrawer("", Rect{}), NewPourDrawer(0, "", Rect{}), NewImageDrawer(nil, Rect{})} {
+		b, _ := json.Marshal(Drawers{d}) // a new drawer of a known type encodes
+		s.drawers[d.DrawerType()] = patchKeysOf(patchNodeOf(b).items[0])
+	}
+	s.file.allow(root)
+	for _, doc := range root.member("documents").items {
+		s.document.allow(doc)
+		for _, d := range doc.member("drawers").items {
+			if keys, ok := s.drawers[patchDrawerType(d)]; ok {
+				keys.allow(d)
+			} else {
+				s.raws = append(s.raws, d.clone())
+			}
+		}
+	}
+	return s
+}
+
+// patchKeysOf returns the keys of n, all needed.
+func patchKeysOf(n *patchNode) patchKeys {
+	k := patchKeys{needed: n.keys, allowed: map[string]bool{}}
+	for _, key := range n.keys {
+		k.allowed[key] = true
+	}
+	return k
+}
+
+// allow allows the keys of n.
+func (k patchKeys) allow(n *patchNode) {
+	for _, key := range n.keys {
+		k.allowed[key] = true
+	}
+}
+
+// check reports a key of n, at path, that k does not allow, or one it needs
+// that n lacks.
+func (k patchKeys) check(n *patchNode, path, what string) error {
+	if n.kind != jsontext.KindBeginObject {
+		return fmt.Errorf("%w: %s is not an object, as %s is", ErrBadPatch, path, what)
+	}
+	for _, key := range n.keys {
+		if !k.allowed[key] {
+			return fmt.Errorf("%w: %s: %s has no key %q, and tm2 writes only the keys the app writes", ErrBadPatch, path, what, key)
+		}
+	}
+	for _, key := range k.needed {
+		if n.index(key) < 0 {
+			return fmt.Errorf("%w: %s: %s needs the key %q; replace the values of its keys instead, or copy one", ErrBadPatch, path, what, key)
+		}
+	}
+	return nil
+}
+
+// check reports an object of root, the patched file, that s does not
+// allow. Values of the wrong type are left to ParseFile.
+func (s *patchShape) check(root *patchNode) error {
+	if err := s.file.check(root, "the file", "a file"); err != nil {
+		return err
+	}
+	docs := root.member("documents")
+	if docs == nil || docs.kind != jsontext.KindBeginArray {
+		return nil
+	}
+	raws := slices.Clone(s.raws)
+	for i, doc := range docs.items {
+		path := fmt.Sprintf("/documents/%d", i)
+		if err := s.document.check(doc, path, "a document"); err != nil {
+			return err
+		}
+		drawers := doc.member("drawers")
+		if drawers.kind != jsontext.KindBeginArray {
+			continue
+		}
+		for j, d := range drawers.items {
+			path := fmt.Sprintf("%s/drawers/%d", path, j)
+			typ := patchDrawerType(d)
+			if keys, ok := s.drawers[typ]; ok {
+				if err := keys.check(d, path, "a "+typ+" drawer"); err != nil {
+					return err
+				}
+				continue
+			}
+			k := slices.IndexFunc(raws, d.equal)
+			if k < 0 {
+				return fmt.Errorf("%w: %s is a drawer of type %q, which tm2 does not know; it can only be one the file has, once", ErrBadPatch, path, typ)
+			}
+			raws = slices.Delete(raws, k, k+1)
+		}
+	}
+	return nil
+}
+
+// patchDrawerType is the "type" of the drawer d, or "" for none.
+func patchDrawerType(d *patchNode) string {
+	var typ string
+	if t := d.member("type"); t != nil {
+		_ = json.Unmarshal(t.value, &typ) // a type that is no string is none
+	}
+	return typ
 }
 
 // patchNode is a JSON value of the file being patched. An object keeps the
@@ -223,9 +378,17 @@ func (n *patchNode) clone() *patchNode {
 	return c
 }
 
-// member returns the index of key in object n, or -1.
-func (n *patchNode) member(key string) int {
+// index returns the index of key in object n, or -1.
+func (n *patchNode) index(key string) int {
 	return slices.Index(n.keys, key)
+}
+
+// member returns the value of key in object n, or nil.
+func (n *patchNode) member(key string) *patchNode {
+	if i := n.index(key); i >= 0 {
+		return n.members[i]
+	}
+	return nil
 }
 
 // equal reports whether n and m are the same JSON value, as test compares
@@ -245,6 +408,9 @@ func (t *patchTarget) apply(op PatchOp) error {
 	path, err := patchPointer(op.Path)
 	if err != nil {
 		return err
+	}
+	if op.Op != "test" && patchIsDrawerHead(path) {
+		return fmt.Errorf("%w: the empty key of a drawer stays as the app writes it", ErrBadPatch)
 	}
 	var value *patchNode
 	switch op.Op {
@@ -297,7 +463,11 @@ func (t *patchTarget) apply(op PatchOp) error {
 			return err
 		}
 		if !v.equal(value) {
-			return fmt.Errorf("%w: the value is %s", ErrBadPatch, v.bytes())
+			got := v.bytes()
+			if len(got) > patchShownBytes {
+				got = append(got[:patchShownBytes:patchShownBytes], "..."...)
+			}
+			return fmt.Errorf("%w: the value is %s", ErrBadPatch, got)
 		}
 		return nil
 	default:
@@ -305,13 +475,17 @@ func (t *patchTarget) apply(op PatchOp) error {
 	}
 }
 
+// patchShownBytes is the most of a value an error shows. A picture is
+// megabytes.
+const patchShownBytes = 200
+
 // get returns the value at path.
 func (t *patchTarget) get(path []string) (*patchNode, error) {
 	n := t.root
 	for i, tok := range path {
 		switch n.kind {
 		case jsontext.KindBeginObject:
-			j := n.member(tok)
+			j := n.index(tok)
 			if j < 0 {
 				return nil, fmt.Errorf("%w: %s has no key %q", ErrBadPatch, patchPointerString(path[:i]), tok)
 			}
@@ -385,7 +559,7 @@ func (t *patchTarget) replace(path []string, v *patchNode) error {
 		return err
 	}
 	if parent.kind == jsontext.KindBeginObject {
-		i := parent.member(last)
+		i := parent.index(last)
 		if i < 0 {
 			return fmt.Errorf("%w: %s has no key %q, and tm2 writes only the keys the app writes", ErrBadPatch, patchPointerString(path[:len(path)-1]), last)
 		}
@@ -417,8 +591,11 @@ func (t *patchTarget) parent(path []string) (*patchNode, string, error) {
 // drawers: a new drawer of its type, with v's keys over it. Any other v is
 // returned as it is.
 func (t *patchTarget) drawerAdded(path []string, v *patchNode) (*patchNode, error) {
-	if len(path) != 4 || path[0] != "documents" || path[2] != "drawers" || v.kind != jsontext.KindBeginObject {
+	if len(path) != 4 || path[0] != "documents" || path[2] != "drawers" {
 		return v, nil
+	}
+	if v.kind != jsontext.KindBeginObject {
+		return nil, fmt.Errorf("%w: a drawer added is an object of its type and the keys to change", ErrBadPatch)
 	}
 	doc, err := t.get(path[:2])
 	if err != nil {
@@ -428,15 +605,11 @@ func (t *patchTarget) drawerAdded(path []string, v *patchNode) (*patchNode, erro
 		return v, nil // add reports that it holds no drawers
 	}
 	var frame Rect
-	if i := doc.member("frame"); i >= 0 {
-		_ = json.Unmarshal(doc.members[i].bytes(), &frame) // a frame that is no Rect puts the drawer at 0
-	}
-	var typ string
-	if i := v.member("type"); i < 0 || json.Unmarshal(v.members[i].value, &typ) != nil {
-		return nil, fmt.Errorf("%w: a drawer added needs its type: text, pour or image", ErrBadPatch)
+	if fr := doc.member("frame"); fr != nil {
+		_ = json.Unmarshal(fr.bytes(), &frame) // a frame that is no Rect puts the drawer at 0
 	}
 	var d Drawer
-	switch typ {
+	switch typ := patchDrawerType(v); typ {
 	case DrawerTypeText:
 		d = NewTextDrawer("", frame)
 	case DrawerTypePour:
@@ -444,14 +617,14 @@ func (t *patchTarget) drawerAdded(path []string, v *patchNode) (*patchNode, erro
 	case DrawerTypeImage:
 		d = NewImageDrawer(nil, frame)
 	default:
-		return nil, fmt.Errorf("%w: drawer type %q; tm2 adds text, pour or image", ErrBadPatch, typ)
+		return nil, fmt.Errorf("%w: drawer type %q; a drawer added is of type text, pour or image", ErrBadPatch, typ)
 	}
 	b, _ := json.Marshal(Drawers{d}) // a new drawer of a known type encodes
 	n := patchNodeOf(b).items[0]
 	for i, key := range v.keys {
-		j := n.member(key)
+		j := n.index(key)
 		if j < 0 {
-			return nil, fmt.Errorf("%w: a %s drawer has no key %q", ErrBadPatch, typ, key)
+			return nil, fmt.Errorf("%w: a %s drawer has no key %q", ErrBadPatch, d.DrawerType(), key)
 		}
 		n.members[j] = v.members[i]
 	}
@@ -468,9 +641,19 @@ func patchPointer(p string) ([]string, error) {
 	}
 	path := strings.Split(p[1:], "/")
 	for i, tok := range path {
+		// A ~ is ~0 or ~1, nothing else.
+		if strings.Count(tok, "~") != strings.Count(tok, "~0")+strings.Count(tok, "~1") {
+			return nil, fmt.Errorf("%w: %q: a ~ in a JSON Pointer is ~0 or ~1", ErrBadPatch, p)
+		}
 		path[i] = strings.NewReplacer("~1", "/", "~0", "~").Replace(tok)
 	}
 	return path, nil
+}
+
+// patchIsDrawerHead reports whether path is the empty key after a drawer's
+// identifier. The app writes it, and tm2 writes it as the app does.
+func patchIsDrawerHead(path []string) bool {
+	return len(path) == 5 && path[0] == "documents" && path[2] == "drawers" && path[4] == ""
 }
 
 // patchPointerString is the JSON Pointer of path, or "the file" for none.

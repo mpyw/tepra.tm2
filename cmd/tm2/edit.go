@@ -29,8 +29,9 @@ func editCommand() *cli.Command {
 			"  [{\"op\": \"replace\", \"path\": \"/documents/0/drawers/0/TIText\", \"value\": \"A\"}]\n" +
 			"\"image_path\" in an operation gives a picture: the value of a path ending in\n" +
 			"/image, or the image of an image drawer added.\n" +
-			"Keys are not added or removed, since the app writes every key. A drawer added\n" +
-			"starts as the app makes one of its type. Without -o the file is changed in place.",
+			"Keys are not added or removed, since the app writes every key, and a whole object\n" +
+			"put in place needs every key. A drawer added starts as the app makes one of its\n" +
+			"type. Without -o the file is changed in place.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "output",
@@ -94,7 +95,7 @@ type editOp struct {
 	Path      string `json:"path" jsonschema:"JSON Pointer to the value, such as /documents/0/drawers/1/TIText; /documents/0/drawers/- adds a drawer last, on top"`
 	From      string `json:"from,omitempty" jsonschema:"JSON Pointer to the value that move and copy take"`
 	Value     any    `json:"value,omitempty" jsonschema:"the value that add, replace and test take"`
-	ImagePath string `json:"image_path,omitempty" jsonschema:"path of a PNG, JPEG or GIF picture: the value of a path ending in /image, or the image of an image drawer added"`
+	ImagePath string `json:"image_path,omitempty" jsonschema:"path of a PNG, JPEG or GIF picture: the value of a path ending in /image, given with no value, or the image of a drawer of type image given as the value"`
 }
 
 // editFile reads the .tm2 file at path, and applies ops to it. readPicture
@@ -119,11 +120,14 @@ func editFile(path string, ops []editOp, readPicture func(string) ([]byte, error
 }
 
 // editInPlace reports whether out is the file read, at path, which an edit
-// replaces without being told to.
+// replaces without being told to. Another path to the same file, such as
+// a symlink, is the file too.
 //
 //declscope:shared // mcp.go writes an edit with it
 func editInPlace(path, out string) bool {
-	return filepath.Clean(path) == filepath.Clean(out)
+	a, errA := os.Stat(path)
+	b, errB := os.Stat(out)
+	return errA == nil && errB == nil && os.SameFile(a, b)
 }
 
 // editPatchOp converts op for package tm2.
@@ -135,16 +139,14 @@ func (op editOp) editPatchOp(readPicture func(string) ([]byte, error)) (tm2.Patc
 			return tm2.PatchOp{}, err
 		}
 		enc := base64.StdEncoding.EncodeToString(pic)
-		switch v := value.(type) {
-		case map[string]any:
-			v["image"] = enc
-		case nil:
-			if !strings.HasSuffix(op.Path, "/image") {
-				return tm2.PatchOp{}, errors.New("image_path is for a path ending in /image, or a value that is an image drawer")
-			}
+		drawer, _ := value.(map[string]any) // nil unless the value is an object
+		switch {
+		case drawer != nil && drawer["type"] == tm2.DrawerTypeImage:
+			drawer["image"] = enc
+		case value == nil && strings.HasSuffix(op.Path, "/image"):
 			value = enc
 		default:
-			return tm2.PatchOp{}, errors.New("image_path is for a path ending in /image, or a value that is an image drawer")
+			return tm2.PatchOp{}, errors.New(`image_path is for a path ending in /image with no value, or a value that is a drawer of type "image"`)
 		}
 	}
 	p := tm2.PatchOp{Op: op.Op, Path: op.Path, From: op.From}

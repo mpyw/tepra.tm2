@@ -365,11 +365,47 @@ func TestEdit_rejects(t *testing.T) {
 		"missing image":  {`[{"op": "replace", "path": "/documents/0/drawers/0/image", "image_path": "none.png"}]`, []string{"edit", path}},
 		"image for text": {`[{"op": "replace", "path": "/documents/0/drawers/0/TIText", "image_path": "` + path + `"}]`, []string{"edit", path}},
 		"image in value": {`[{"op": "replace", "path": "/fileName", "value": "a", "image_path": "` + path + `"}]`, []string{"edit", path}},
+		// A file read into a drawer that is not a picture would carry it.
+		"image into text": {`[{"op": "add", "path": "/documents/0/drawers/-", "value": {"type": "text"}, "image_path": "` + path + `"}]`, []string{"edit", path}},
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
 	}
 	for name, tt := range tests {
 		if _, err := runMain(t, tt.stdin, tt.args...); err == nil {
 			t.Errorf("%s: no error", name)
 		}
+		after, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(before, after) {
+			t.Fatalf("%s: the file changed", name)
+		}
+	}
+}
+
+// Another path to the file read, such as a symlink, is an edit in place.
+func TestEdit_inPlaceThroughASymlink(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "x.tm2")
+	if _, err := runMain(t, "", "text", "-o", path, "a"); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "link.tm2")
+	if err := os.Symlink(path, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runMain(t, `[{"op": "replace", "path": "/fileName", "value": "b.tm2"}]`, "edit", "-o", link, path); err != nil {
+		t.Fatal(err)
+	}
+	f, err := tm2.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.FileName != "b.tm2" {
+		t.Errorf("name %q", f.FileName)
 	}
 }
 

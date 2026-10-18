@@ -353,6 +353,11 @@ drawers: /documents/2/drawers
 It reads the patch from a file, or from stdin without one.
 Without `-o`, it changes the file in place.
 
+> [!WARNING]
+> An edit in place writes over the file, as `--force` does.
+> A failed write, such as on a full disk, can leave it broken.
+> Keep a copy of a file the app saved, or write to another with `-o`.
+
 This `patch.json` changes the third row, and centres the text:
 
 ```json
@@ -389,11 +394,15 @@ What a patch keeps:
 | Rule | Why |
 | --- | --- |
 | A key is not added or removed | The app writes every key. A new key would be one no file of the app has |
+| A whole file, document or drawer put in place needs every key it has, and no other | A key left out would be written as 0, not as the app sets it. So `type` changes only with the keys of the new type |
 | A drawer added starts as the app makes one of its `type`: `text`, `pour` or `image` | It needs only `type` and the keys to change. Its frame is the label's frame |
-| A copy of a document or drawer gets a new identifier | The app gives each one its own |
+| A drawer of a type tm2 does not know may move, but not be copied or changed | It is written as it was read, so its identifier cannot change |
+| The empty key after a drawer's `identifier` stays | The app writes it |
+| A copy of a document or drawer, or one with no identifier, gets a new identifier | The app gives each one its own |
+| `hasPlaceholder` is set when `TIText` is empty, and cleared when it is not | The app shows the placeholder instead of the text while it is set |
 | With two or more pages, each gets `MultiplePage` | The app lists the pages only then |
 | A row of `tableData` gets empty cells up to 50 | The app writes 50 columns |
-| A JPEG or GIF picture is made PNG | The app stores pictures as PNG |
+| A picture is checked, and a JPEG or GIF is made PNG | The app stores pictures as PNG |
 | A value the app crashes on fails the patch | Such a file is never written |
 
 Either every operation applies, or nothing changes.
@@ -403,7 +412,8 @@ Either every operation applies, or nothing changes.
 > Set `frame` too when the size must change. A frame is x, y, width and height in points. 1 mm is 2.835 points.
 
 `image_path` in an operation gives a picture, from a PNG, JPEG or GIF file.
-It is the value of a path that ends in `/image`, or the image of an image drawer added:
+It is the value of a path that ends in `/image`, given with no `value`.
+Or it is the image of a drawer of type `image`, given as the `value`:
 
 ```json
 [{"op": "add", "path": "/documents/0/drawers/-", "value": {"type": "image", "frame": [0, 0, 20, 20]}, "image_path": "/path/to/logo.png"}]

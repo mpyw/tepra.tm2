@@ -191,6 +191,26 @@ func TestFilePatch_rejects(t *testing.T) {
 		"replace past":     {patchOp("replace", "/documents/1", `{}`), tm2.ErrBadPatch},
 		"drawer, no page":  {patchOp("add", "/documents/9/drawers/-", `{"type":"text"}`), tm2.ErrBadPatch},
 		"51 titles":        {patchOp("add", "/tableHeader/-", `"x"`), tm2.ErrOverLimit},
+
+		// No key the app does not write, however the object comes in.
+		"drawers with a new key": {patchOp("replace", "/documents/0/drawers", `[{"type":"text","evil":2}]`), tm2.ErrBadPatch},
+		"drawer short of keys":   {patchOp("replace", "/documents/0/drawers/0", `{"type":"text","TIText":"y"}`), tm2.ErrBadPatch},
+		"document short of keys": {patchOp("add", "/documents/-", `{"SettingsTapeWidth":12,"drawers":[]}`), tm2.ErrBadPatch},
+		"file short of keys":     {patchOp("replace", "", `{"documents":[]}`), tm2.ErrBadPatch},
+		"file not an object":     {patchOp("replace", "", `[]`), tm2.ErrBadPatch},
+		"text to image":          {patchOp("replace", "/documents/0/drawers/0/type", `"image"`), tm2.ErrBadPatch},
+		"text to pour":           {patchOp("replace", "/documents/0/drawers/0/type", `"pour"`), tm2.ErrBadPatch},
+		"invented type":          {patchOp("replace", "/documents/0/drawers/0/type", `"zzz"`), tm2.ErrBadPatch},
+		"number as a drawer":     {patchOp("add", "/documents/0/drawers/-", `1`), tm2.ErrBadPatch},
+		"document as a drawer":   {tm2.PatchOp{Op: "copy", From: "/documents/0", Path: "/documents/0/drawers/-"}, tm2.ErrBadPatch},
+		"string as a drawer":     {tm2.PatchOp{Op: "copy", From: "/fileName", Path: "/documents/0/drawers/-"}, tm2.ErrBadPatch},
+		"the empty key":          {patchOp("replace", "/documents/0/drawers/0/", `"x"`), tm2.ErrBadPatch},
+		"bad escape":             {patchOp("replace", "/file~2Name", `"a"`), tm2.ErrBadPatch},
+		"trailing ~":             {patchOp("replace", "/fileName~", `"a"`), tm2.ErrBadPatch},
+		"documents a string":     {patchOp("replace", "/documents", `"x"`), tm2.ErrBadPatch},
+		"drawers a number":       {patchOp("replace", "/documents/0/drawers", `1`), tm2.ErrBadPatch},
+		"long failed test":       {patchOp("test", "/documents/0", `1`), tm2.ErrBadPatch},
+		"not a PNG after all":    {patchOp("add", "/documents/0/drawers/-", `{"type":"image","image":"`+base64.StdEncoding.EncodeToString([]byte("\x89PNG\r\n\x1a\ngarbage"))+`"}`), tm2.ErrBadImage},
 	}
 	for name, tt := range tests {
 		f := patchFixture(t)
@@ -213,14 +233,20 @@ func TestFilePatch_rejects(t *testing.T) {
 
 func TestFilePatch_wholeFileAndItems(t *testing.T) {
 	f := patchFixture(t)
-	file := `{"documents":[{"SettingsTapeWidth":12,"drawers":[]}],"currentPage":0,"fileName":"w.tm2"}`
-	if err := f.Patch(patchOp("replace", "", file)); err != nil {
+	other := patchFixture(t)
+	other.FileName = "w.tm2"
+	other.Documents[0].Drawers = nil
+	var file bytes.Buffer
+	if _, err := other.WriteTo(&file); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Patch(patchOp("replace", "", file.String())); err != nil {
 		t.Fatal(err)
 	}
 	if f.FileName != "w.tm2" || len(f.Documents[0].Drawers) != 0 {
 		t.Errorf("name %q, %d drawers", f.FileName, len(f.Documents[0].Drawers))
 	}
-	if err := f.Patch(patchOp("add", "", strings.Replace(file, "w.tm2", "v.tm2", 1))); err != nil {
+	if err := f.Patch(patchOp("add", "", strings.Replace(file.String(), "w.tm2", "v.tm2", 1))); err != nil {
 		t.Fatal(err)
 	}
 	if f.FileName != "v.tm2" {
@@ -256,6 +282,51 @@ func TestFilePatch_wholeFileAndItems(t *testing.T) {
 	}
 }
 
+func TestFilePatch_identifiersAndPlaceholders(t *testing.T) {
+	f := patchFixture(t)
+	err := f.Patch(
+		patchOp("add", "/documents/0/drawers/-", `{"type":"text","identifier":""}`),
+		patchOp("add", "/documents/0/drawers/-", `{"type":"text","identifier":"","TIText":"b"}`),
+		patchOp("replace", "/documents/0/drawers/0/TIText", `""`),
+		patchOp("replace", "/tableHeader", `[]`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ds := f.Documents[0].Drawers
+	a, b := fixtureAs[*tm2.TextDrawer](t, ds[1]), fixtureAs[*tm2.TextDrawer](t, ds[2])
+	if a.Identifier == "" || b.Identifier == "" || a.Identifier == b.Identifier {
+		t.Errorf("identifiers %q, %q", a.Identifier, b.Identifier)
+	}
+	// The app shows the placeholder instead of the text while it is set.
+	if !fixtureAs[*tm2.TextDrawer](t, ds[0]).HasPlaceholder || !a.HasPlaceholder || b.HasPlaceholder {
+		t.Error("placeholder not as the text")
+	}
+	if len(f.TableHeader) != tm2.FileTableColumns {
+		t.Errorf("%d titles", len(f.TableHeader))
+	}
+
+	// A placeholder the app set goes once the box has text.
+	g, err := tm2.ReadFile("testdata/blank-12mm.tm2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Patch(patchOp("replace", "/documents/0/drawers/0/TIText", `"x"`)); err != nil {
+		t.Fatal(err)
+	}
+	if fixtureAs[*tm2.TextDrawer](t, g.Documents[0].Drawers[0]).HasPlaceholder {
+		t.Error("placeholder on a box with text")
+	}
+}
+
+func TestFilePatch_textThatIsNotUTF8(t *testing.T) {
+	f := patchFixture(t)
+	f.FileName = "\xff"
+	if err := f.Patch(); !errors.Is(err, tm2.ErrBadFile) {
+		t.Errorf("%v, want ErrBadFile", err)
+	}
+}
+
 func TestFilePatch_keepsRawDrawers(t *testing.T) {
 	f := patchFixture(t)
 	raw := &tm2.RawDrawer{Type: "shape", JSON: jsontext.Value(`{"type":"shape","identifier":"x"}`)}
@@ -266,6 +337,21 @@ func TestFilePatch_keepsRawDrawers(t *testing.T) {
 	}
 	if d := fixtureAs[*tm2.RawDrawer](t, f.Documents[0].Drawers[1]); d.Type != "shape" || d.Identifier != "x" {
 		t.Errorf("raw drawer %+v", d)
+	}
+	// It may move, but not be copied, nor changed.
+	if err := f.Patch(tm2.PatchOp{Op: "move", From: "/documents/0/drawers/1", Path: "/documents/0/drawers/0"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := f.Documents[0].Drawers[0].(*tm2.RawDrawer); !ok {
+		t.Errorf("drawer 0 %T", f.Documents[0].Drawers[0])
+	}
+	for name, op := range map[string]tm2.PatchOp{
+		"copy":   {Op: "copy", From: "/documents/0/drawers/0", Path: "/documents/0/drawers/-"},
+		"change": patchOp("replace", "/documents/0/drawers/0/identifier", `"y"`),
+	} {
+		if err := f.Patch(op); !errors.Is(err, tm2.ErrBadPatch) {
+			t.Errorf("%s: %v", name, err)
+		}
 	}
 }
 
