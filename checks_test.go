@@ -209,8 +209,12 @@ func TestLayout_noRoomSaysWhy(t *testing.T) {
 		want string
 	}{
 		{strings.Repeat("a\n", 70) + "a", nil, "too many lines for 18 mm tape"},
-		{strings.Repeat("あ", 20), []tepra.TextOption{tepra.WithRotation(tepra.Rotation90)}, "a line too long to run across it for 4 mm tape"},
-		{"a\nb", []tepra.TextOption{tepra.WithBorder(tepra.BorderBox)}, "too many lines, with padding of 1.5 mm for 4 mm tape"},
+		{strings.Repeat("あ", 20), []tepra.TextOption{tepra.WithRotation(tepra.Rotation90)}, "a line too long to run across the tape for 4 mm tape"},
+		// One letter fits 4 mm tape; the padding of a border takes the room
+		// (#38).
+		{"A", []tepra.TextOption{tepra.WithBorder(tepra.BorderBox)}, "padding of 1.5 mm leaves no room for text on 4 mm tape"},
+		{"A", []tepra.TextOption{tepra.WithPaddingMM(1.5), tepra.WithRotation(tepra.Rotation90)}, "padding of 1.5 mm leaves no room for text on 4 mm tape"},
+		{strings.Repeat("a\n", 70) + "a", []tepra.TextOption{tepra.WithPaddingMM(1)}, "too many lines for 18 mm tape, even with no padding"},
 	}
 	for _, tt := range tests {
 		tape := tepra.Tape18mm

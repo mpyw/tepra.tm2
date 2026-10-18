@@ -86,16 +86,7 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 	case CodeText:
 		size, width = layoutText(texts, height, c.fontSize, sideways)
 		if size <= 0 {
-			// Too many lines, or with the lines across the tape, a line too
-			// long for its width. The padding may be what takes the room.
-			cause := "too many lines"
-			if sideways {
-				cause = "a line too long to run across it"
-			}
-			if pad > 0 {
-				cause += fmt.Sprintf(", with padding of %v mm", padMM)
-			}
-			return labelLayout{}, fmt.Errorf("%w: %s for %d mm tape", ErrNoRoom, cause, tape.WidthMM)
+			return labelLayout{}, fmt.Errorf("%w: %s", ErrNoRoom, layoutNoRoom(tape, texts, c, sideways))
 		}
 	case CodeQR:
 		size, width = layoutCodeFontSize, height
@@ -181,6 +172,24 @@ func layoutLabel(tape Tape, texts []string, c *optionConfig) (labelLayout, error
 		l.pictures = append(l.pictures, NewImageDrawer(blackImage(textBand[2], textBand[3]), textBand))
 	}
 	return l, nil
+}
+
+// layoutNoRoom says why texts get no room on tape: the padding, when they
+// would fit without it, or else the lines, too many down the tape or too
+// long across it.
+func layoutNoRoom(tape Tape, texts []string, c *optionConfig, sideways bool) string {
+	if size, _ := layoutText(texts, tape.PrintableHeight, c.fontSize, sideways); c.paddingMM > 0 && size > 0 {
+		return fmt.Sprintf("padding of %v mm leaves no room for text on %d mm tape", c.paddingMM, tape.WidthMM)
+	}
+	cause := "too many lines"
+	if sideways {
+		cause = "a line too long to run across the tape"
+	}
+	cause = fmt.Sprintf("%s for %d mm tape", cause, tape.WidthMM)
+	if c.paddingMM > 0 {
+		cause += ", even with no padding"
+	}
+	return cause
 }
 
 // layoutLineOf returns what frame i of n frames of lines drawn apart shows
