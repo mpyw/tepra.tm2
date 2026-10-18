@@ -185,6 +185,7 @@ Inputs:
 - Paths must be absolute, for the file and for pictures.
 - A file is not replaced unless `overwrite` is true.
   `edit_label` changes the file at `path` in place without it. It writes to `output` instead when given.
+  The label then takes the name of `output` in the app, unless the patch sets `/fileName`.
 - A line break in a label is `\n`.
 
 ### Commands
@@ -352,6 +353,8 @@ drawers: /documents/2/drawers
 `tm2 edit` changes a `.tm2` file by a [patch](#patches).
 It reads the patch from a file, or from stdin without one.
 Without `-o`, it changes the file in place.
+With `-o`, the label takes the name of the new file in the app, as a label made there would.
+A patch that sets `/fileName` keeps its own name.
 
 > [!WARNING]
 > An edit in place writes over the file, as `--force` does.
