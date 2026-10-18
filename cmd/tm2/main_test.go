@@ -31,7 +31,7 @@ func TestPour(t *testing.T) {
 	if !strings.HasPrefix(stdout, "wrote "+out+": 2 labels, ") {
 		t.Errorf("stdout %q", stdout)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,10 +45,10 @@ func TestPour(t *testing.T) {
 	if len(ds) != 2 {
 		t.Fatalf("%d drawers, want the border's box and the pour drawer", len(ds))
 	}
-	if box, ok := ds[0].(*tepra.TextDrawer); !ok || box.BIType != tepra.BorderRounded || box.BILineWidthValue != 1.4 {
+	if box, ok := ds[0].(*tm2.TextDrawer); !ok || box.BIType != tm2.BorderRounded || box.BILineWidthValue != 1.4 {
 		t.Errorf("drawer 0 %+v, want a rounded border 1.4 wide", ds[0])
 	}
-	if d, ok := ds[1].(*tepra.PourDrawer); !ok || d.FontName != tepra.FontGothicBold || d.Alignment != tepra.AlignCenter || d.VerticalAlignment != tepra.VerticalAlignTop {
+	if d, ok := ds[1].(*tm2.PourDrawer); !ok || d.FontName != tm2.FontGothicBold || d.Alignment != tm2.AlignCenter || d.VerticalAlignment != tm2.VerticalAlignTop {
 		t.Errorf("drawer 1 %+v, want a pour drawer in bold, centred at the top", ds[1])
 	}
 }
@@ -58,7 +58,7 @@ func TestPour_readsStdin(t *testing.T) {
 	if _, err := runMain(t, "a\nb\n", "pour", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestPour_keepsAnExistingFile(t *testing.T) {
 	if _, err := runMain(t, "a\n", "pour", "-f", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tepra.ReadFile(out); err != nil {
+	if _, err := tm2.ReadFile(out); err != nil {
 		t.Errorf("file not replaced: %v", err)
 	}
 }
@@ -120,7 +120,7 @@ func TestPages(t *testing.T) {
 	if want := "wrote " + out + ": 2 pages, 12.6 to 26.3 mm long, on 12 mm tape\n"; stdout != want {
 		t.Errorf("stdout %q, want %q", stdout, want)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,14 +159,14 @@ func TestText(t *testing.T) {
 	if !strings.HasPrefix(stdout, "wrote "+out+": 1 label, ") {
 		t.Errorf("stdout %q", stdout)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Inverted text gets a box per line.
 	var texts []string
 	for _, d := range f.Documents[0].Drawers {
-		if d, ok := d.(*tepra.TextDrawer); ok && d.FillMode == tepra.FillInverted {
+		if d, ok := d.(*tm2.TextDrawer); ok && d.FillMode == tm2.FillInverted {
 			texts = append(texts, d.Text)
 		}
 	}
@@ -209,12 +209,12 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(stdout, "tepra version (devel) (go") {
+	if !strings.HasPrefix(stdout, "tm2 version (devel) (go") {
 		t.Errorf("stdout %q", stdout)
 	}
 }
 
-// runMain runs tepra with args and stdin, and returns what it wrote to
+// runMain runs tm2 with args and stdin, and returns what it wrote to
 // stdout.
 func runMain(t *testing.T, stdin string, args ...string) (string, error) {
 	t.Helper()
@@ -223,7 +223,7 @@ func runMain(t *testing.T, stdin string, args ...string) (string, error) {
 	cmd.Reader = strings.NewReader(stdin)
 	cmd.Writer = &stdout
 	cmd.ErrWriter = &stdout
-	err := cmd.Run(context.Background(), append([]string{"tepra"}, args...))
+	err := cmd.Run(context.Background(), append([]string{"tm2"}, args...))
 	return stdout.String(), err
 }
 
@@ -237,7 +237,7 @@ func TestText_pictures(t *testing.T) {
 	if _, err := runMain(t, "", "text", "--icon", pic, "--background", pic, "--padding", "2", "-o", out, "カイロ"); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,13 +265,13 @@ func TestMainExitCode(t *testing.T) {
 		out  string
 	}{
 		{nil, 0, ""},
-		{tepra.ErrNoText, 1, "tepra: no text\n"},
-		{errors.New("pour takes one file at most"), 1, "tepra: pour takes one file at most\n"},
-		{cli.Exit("quiet", 3), 3, "tepra: quiet\n"},
+		{tm2.ErrNoText, 1, "tm2: no text\n"},
+		{errors.New("pour takes one file at most"), 1, "tm2: pour takes one file at most\n"},
+		{cli.Exit("quiet", 3), 3, "tm2: quiet\n"},
 		{cli.Exit("", 4), 4, ""},
-		{errors.Join(fmt.Errorf("%w: margin", tepra.ErrInvalidOptions), fmt.Errorf("value 1: %w", tepra.ErrNoText)), 1, "tepra: invalid options: margin\ntepra: value 1: no text\n"},
-		// A "tepra: " of the user's own stays (#9).
-		{fmt.Errorf("%w: %q", tepra.ErrBadCode, "tepra: 12"), 1, "tepra: bad value for a code: \"tepra: 12\"\n"},
+		{errors.Join(fmt.Errorf("%w: margin", tm2.ErrInvalidOptions), fmt.Errorf("value 1: %w", tm2.ErrNoText)), 1, "tm2: invalid options: margin\ntm2: value 1: no text\n"},
+		// A "tm2: " of the user's own stays (#9).
+		{fmt.Errorf("%w: %q", tm2.ErrBadCode, "tm2: 12"), 1, "tm2: bad value for a code: \"tm2: 12\"\n"},
 	}
 	for _, tt := range tests {
 		var w bytes.Buffer
@@ -287,15 +287,15 @@ func TestPour_newOptions(t *testing.T) {
 	if _, err := runMain(t, "490123456789\n451234567890\n", "pour", "--code", "jan13", "--length", "40", "--margin", "2", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
 	doc := f.Documents[0]
-	if d, ok := doc.Drawers[0].(*tepra.PourDrawer); !ok || d.Attribute != tepra.CodeJAN13 {
+	if d, ok := doc.Drawers[0].(*tm2.PourDrawer); !ok || d.Attribute != tm2.CodeJAN13 {
 		t.Errorf("drawer %+v, want JAN-13", doc.Drawers[0])
 	}
-	if doc.AutoLength || doc.FixedLength != tepra.MMToPoints(40) || doc.Margin != tepra.MMToPoints(2) {
+	if doc.AutoLength || doc.FixedLength != tm2.MMToPoints(40) || doc.Margin != tm2.MMToPoints(2) {
 		t.Errorf("auto %v, fixed %v, margin %v", doc.AutoLength, doc.FixedLength, doc.Margin)
 	}
 
@@ -306,14 +306,14 @@ func TestPour_newOptions(t *testing.T) {
 	if _, err := runMain(t, "", "text", "--rotate", "90", "--icon", pic, "--image-mode", "screen", "--image-threshold", "64", "-f", "-o", out, "x"); err != nil {
 		t.Fatal(err)
 	}
-	if f, err = tepra.ReadFile(out); err != nil {
+	if f, err = tm2.ReadFile(out); err != nil {
 		t.Fatal(err)
 	}
 	ds := f.Documents[0].Drawers
-	if img, ok := ds[0].(*tepra.ImageDrawer); !ok || img.ImageMode != tepra.ImageModeScreen || img.ImageThreshold != 64 {
+	if img, ok := ds[0].(*tm2.ImageDrawer); !ok || img.ImageMode != tm2.ImageModeScreen || img.ImageThreshold != 64 {
 		t.Errorf("drawer 0 %+v, want a screened picture", ds[0])
 	}
-	if d, ok := ds[1].(*tepra.TextDrawer); !ok || d.Rotate != tepra.Rotation90 {
+	if d, ok := ds[1].(*tm2.TextDrawer); !ok || d.Rotate != tm2.Rotation90 {
 		t.Errorf("drawer 1 %+v, want text turned 90°", ds[1])
 	}
 	if _, err := runMain(t, "", "text", "--vertical", "-f", "-o", out, "縦"); err != nil {
@@ -325,7 +325,7 @@ func TestPour_newOptions(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "45") || !strings.Contains(err.Error(), "ean8") {
 		t.Errorf("two bad names: %v", err)
 	}
-	if _, err := runMain(t, "a\n", "pour", "--margin", "0", "-f", "-o", out); !errors.Is(err, tepra.ErrInvalidOptions) {
+	if _, err := runMain(t, "a\n", "pour", "--margin", "0", "-f", "-o", out); !errors.Is(err, tm2.ErrInvalidOptions) {
 		t.Errorf("margin 0: %v", err)
 	}
 }
@@ -336,7 +336,7 @@ func TestPour_readsCSV(t *testing.T) {
 	if _, err := runMain(t, in, "pour", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +361,7 @@ func TestPour_readsCSV(t *testing.T) {
 	if _, err := runMain(t, "  \"a,b\"  \n\"He said \"\"hi\"\"\"\n", "pour", "-f", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	if f, err := tepra.ReadFile(out); err != nil || f.TableData[0][0] != "a,b" || f.TableData[1][0] != `He said "hi"` {
+	if f, err := tm2.ReadFile(out); err != nil || f.TableData[0][0] != "a,b" || f.TableData[1][0] != `He said "hi"` {
 		t.Errorf("%v, rows %q", err, f.TableData)
 	}
 }
@@ -391,11 +391,11 @@ func TestInspect_picturesAndUnknownDrawers(t *testing.T) {
 	if _, err := runMain(t, "", "text", "--icon", pic, "-o", out, "x"); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Documents[0].Drawers = append(f.Documents[0].Drawers, &tepra.RawDrawer{Type: "shape", JSON: []byte(`{"type":"shape","frame":[0,0,1,1]}`)})
+	f.Documents[0].Drawers = append(f.Documents[0].Drawers, &tm2.RawDrawer{Type: "shape", JSON: []byte(`{"type":"shape","frame":[0,0,1,1]}`)})
 	if err := f.WriteFile(out); err != nil {
 		t.Fatal(err)
 	}
@@ -403,7 +403,7 @@ func TestInspect_picturesAndUnknownDrawers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"  image  ", "bytes, threshold 128", "  shape  ", "(not known to tepra)"} {
+	for _, want := range []string{"  image  ", "bytes, threshold 128", "  shape  ", "(not known to tm2)"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("no %q in\n%s", want, stdout)
 		}
@@ -431,12 +431,12 @@ func TestWriteLabel_failedWriteKeepsTheOldFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bad, err := tepra.NewText(tepra.Tape18mm, "x")
+	bad, err := tm2.NewText(tm2.Tape18mm, "x")
 	if err != nil {
 		t.Fatal(err)
 	}
 	bad.CurrentPage = 1 // the app crashes on it, so it is not encoded
-	if err := writeLabel(out, bad, true, "--force"); !errors.Is(err, tepra.ErrCrashesApp) {
+	if err := writeLabel(out, bad, true, "--force"); !errors.Is(err, tm2.ErrCrashesApp) {
 		t.Fatalf("%v, want ErrCrashesApp", err)
 	}
 	if after, _ := os.ReadFile(out); !bytes.Equal(after, before) {
@@ -458,7 +458,7 @@ func TestWriteLabel_replaces(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -492,7 +492,7 @@ func TestWriteLabel_replacesInPlace(t *testing.T) {
 	if info, err := os.Lstat(link); err != nil || info.Mode()&fs.ModeSymlink == 0 {
 		t.Errorf("link: %v, %v; want it still a symlink", info, err)
 	}
-	f, err := tepra.ReadFile(real)
+	f, err := tm2.ReadFile(real)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -526,7 +526,7 @@ func TestPour_csvLineEndsAndEncoding(t *testing.T) {
 	if _, err := runMain(t, "a\rb\rc\r", "pour", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -535,7 +535,7 @@ func TestPour_csvLineEndsAndEncoding(t *testing.T) {
 	}
 	// "カイロ" in Shift_JIS.
 	_, err = runMain(t, "\x83J\x83C\x83\x8d\n", "pour", "-f", "-o", out)
-	if !errors.Is(err, tepra.ErrBadText) || !strings.Contains(err.Error(), "UTF-8") {
+	if !errors.Is(err, tm2.ErrBadText) || !strings.Contains(err.Error(), "UTF-8") {
 		t.Errorf("%v, want ErrBadText", err)
 	}
 }
@@ -557,7 +557,7 @@ func TestPour_csvBlanksInsideQuotes(t *testing.T) {
 	if _, err := runMain(t, "\"a  \nb\"  \n\"c\t\n\td\"\n\"e \"\"x\"\"  \nf\"\n", "pour", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -613,7 +613,7 @@ func TestPour_csvFullWidthSpace(t *testing.T) {
 	if _, err := runMain(t, "\"a\"\u3000\n\u3000\"b\"\n", "pour", "-o", out); err != nil {
 		t.Fatal(err)
 	}
-	f, err := tepra.ReadFile(out)
+	f, err := tm2.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/mpyw/tepra.tm2"
 )
 
-// pagesCommand is "tepra pages".
+// pagesCommand is "tm2 pages".
 //
 //declscope:shared // main.go makes it a subcommand
 func pagesCommand() *cli.Command {
@@ -25,7 +25,7 @@ func pagesCommand() *cli.Command {
 	}
 }
 
-// pagesAction runs "tepra pages".
+// pagesAction runs "tm2 pages".
 func pagesAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() > 1 {
 		return errors.New("pages takes one file at most")
@@ -35,8 +35,8 @@ func pagesAction(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 	tape, opts, err := labelOptions(cmd)
-	f, err := labelBuild(tape, err, func() (*tepra.File, error) {
-		return tepra.NewPages(tape, values, labelTextOptions(opts)...)
+	f, err := labelBuild(tape, err, func() (*tm2.File, error) {
+		return tm2.NewPages(tape, values, labelTextOptions(opts)...)
 	})
 	if err != nil {
 		return err

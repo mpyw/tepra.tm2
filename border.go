@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 // BorderType is the line a drawer draws around its frame. Each type was
 // seen in the app, opening a file this package wrote. Values from 6 up drew

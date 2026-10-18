@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 import (
 	"fmt"

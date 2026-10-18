@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"bytes"
@@ -12,15 +12,15 @@ import (
 
 func TestDrawers_keepsUnknownTypes(t *testing.T) {
 	in := `[{"type":"qr","identifier":"id-1","":"","frame":[1,2,3,4],"QRText":"x"}]`
-	var ds tepra.Drawers
+	var ds tm2.Drawers
 	if err := json.Unmarshal([]byte(in), &ds); err != nil {
 		t.Fatal(err)
 	}
-	r, ok := ds[0].(*tepra.RawDrawer)
+	r, ok := ds[0].(*tm2.RawDrawer)
 	if !ok {
-		t.Fatalf("got %T, want *tepra.RawDrawer", ds[0])
+		t.Fatalf("got %T, want *tm2.RawDrawer", ds[0])
 	}
-	if r.DrawerType() != "qr" || r.Base().Identifier != "id-1" || r.Base().Frame != (tepra.Rect{1, 2, 3, 4}) {
+	if r.DrawerType() != "qr" || r.Base().Identifier != "id-1" || r.Base().Frame != (tm2.Rect{1, 2, 3, 4}) {
 		t.Errorf("type %q, identifier %q, frame %v", r.DrawerType(), r.Base().Identifier, r.Base().Frame)
 	}
 	out, err := json.Marshal(ds)
@@ -34,7 +34,7 @@ func TestDrawers_keepsUnknownTypes(t *testing.T) {
 
 func TestDrawers_imageIsBase64(t *testing.T) {
 	png := []byte("\x89PNG\r\n")
-	ds := tepra.Drawers{&tepra.ImageDrawer{BaseDrawer: tepra.BaseDrawer{Identifier: "id"}, Image: png, ImageThreshold: 128}}
+	ds := tm2.Drawers{&tm2.ImageDrawer{BaseDrawer: tm2.BaseDrawer{Identifier: "id"}, Image: png, ImageThreshold: 128}}
 	out, err := json.Marshal(ds)
 	if err != nil {
 		t.Fatal(err)
@@ -45,11 +45,11 @@ func TestDrawers_imageIsBase64(t *testing.T) {
 	if !bytes.Contains(out, []byte(`"image":"iVBORw0K"`)) {
 		t.Errorf("image of %s", out)
 	}
-	var back tepra.Drawers
+	var back tm2.Drawers
 	if err := json.Unmarshal(out, &back); err != nil {
 		t.Fatal(err)
 	}
-	img := fixtureAs[*tepra.ImageDrawer](t, back[0])
+	img := fixtureAs[*tm2.ImageDrawer](t, back[0])
 	if !bytes.Equal(img.Image, png) || img.ImageThreshold != 128 || img.Identifier != "id" {
 		t.Errorf("read back %+v", img)
 	}
@@ -59,7 +59,7 @@ func TestDrawers_rejectsBadDrawers(t *testing.T) {
 	// A drawer that is not an object is kept as a RawDrawer (#45). What
 	// fails is drawers that are not a list, and a known type of bad fields.
 	for _, in := range []string{`{}`, `[{"type":"text","TIText":1}]`} {
-		var ds tepra.Drawers
+		var ds tm2.Drawers
 		if err := json.Unmarshal([]byte(in), &ds); err == nil {
 			t.Errorf("%s: no error", in)
 		}
@@ -67,15 +67,15 @@ func TestDrawers_rejectsBadDrawers(t *testing.T) {
 }
 
 func TestNewTextDrawer_identifiersDiffer(t *testing.T) {
-	a, b := tepra.NewTextDrawer("", tepra.Rect{}), tepra.NewTextDrawer("", tepra.Rect{})
+	a, b := tm2.NewTextDrawer("", tm2.Rect{}), tm2.NewTextDrawer("", tm2.Rect{})
 	if a.Identifier == b.Identifier || len(a.Identifier) != 36 || a.Identifier[14] != '4' {
 		t.Errorf("identifiers %q and %q", a.Identifier, b.Identifier)
 	}
 }
 
 func TestNewImageDrawer_keysOfTheApp(t *testing.T) {
-	d := tepra.NewImageDrawer([]byte("png"), tepra.Rect{0, 4.4, 56, 43.2})
-	out, err := json.Marshal(tepra.Drawers{d})
+	d := tm2.NewImageDrawer([]byte("png"), tm2.Rect{0, 4.4, 56, 43.2})
+	out, err := json.Marshal(tm2.Drawers{d})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,31 +99,31 @@ func TestNewImageDrawer_keysOfTheApp(t *testing.T) {
 }
 
 func TestDrawers_rejectsFillModesTheAppCrashesOn(t *testing.T) {
-	text := tepra.NewTextDrawer("x", tepra.Rect{})
+	text := tm2.NewTextDrawer("x", tm2.Rect{})
 	text.FillMode = 3
-	pour := tepra.NewPourDrawer(0, "x", tepra.Rect{})
+	pour := tm2.NewPourDrawer(0, "x", tm2.Rect{})
 	pour.FillMode = -1
-	for _, d := range []tepra.Drawer{text, pour} {
-		if _, err := json.Marshal(tepra.Drawers{d}); !errors.Is(err, tepra.ErrCrashesApp) {
+	for _, d := range []tm2.Drawer{text, pour} {
+		if _, err := json.Marshal(tm2.Drawers{d}); !errors.Is(err, tm2.ErrCrashesApp) {
 			t.Errorf("%s: %v, want ErrCrashesApp", d.DrawerType(), err)
 		}
 	}
 }
 
 func TestDrawers_rejectsAlignmentsTheAppCrashesOn(t *testing.T) {
-	d := tepra.NewPourDrawer(0, "x", tepra.Rect{})
+	d := tm2.NewPourDrawer(0, "x", tm2.Rect{})
 	d.Alignment = 3
-	if _, err := json.Marshal(tepra.Drawers{d}); !errors.Is(err, tepra.ErrCrashesApp) {
+	if _, err := json.Marshal(tm2.Drawers{d}); !errors.Is(err, tm2.ErrCrashesApp) {
 		t.Errorf("alignment 3: %v, want ErrCrashesApp", err)
 	}
-	d.Alignment = tepra.AlignRight
-	if _, err := json.Marshal(tepra.Drawers{d}); err != nil {
+	d.Alignment = tm2.AlignRight
+	if _, err := json.Marshal(tm2.Drawers{d}); err != nil {
 		t.Errorf("AlignRight: %v", err)
 	}
 }
 
 func TestDrawers_encodingJSONv1(t *testing.T) {
-	f, err := tepra.ReadFile(fixturePourPath)
+	f, err := tm2.ReadFile(fixturePourPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,24 +139,24 @@ func TestDrawers_encodingJSONv1(t *testing.T) {
 	if !bytes.Equal(got, want) {
 		t.Errorf("encoding/json wrote\n%s\nencoding/json/v2 wrote\n%s", got, want)
 	}
-	var back tepra.Drawers
+	var back tm2.Drawers
 	if err := jsonv1.Unmarshal(got, &back); err != nil {
 		t.Fatal(err)
 	}
-	if len(back) != len(ds) || fixtureAs[*tepra.PourDrawer](t, back[1]).Identifier != "1a87ff22-bb84-4ac5-9e28-d451bc3011ae" {
+	if len(back) != len(ds) || fixtureAs[*tm2.PourDrawer](t, back[1]).Identifier != "1a87ff22-bb84-4ac5-9e28-d451bc3011ae" {
 		t.Errorf("read back %+v", back)
 	}
 }
 
 func TestDrawers_rejectsRotationsAndFacesTheAppCrashesOn(t *testing.T) {
-	rotated := tepra.NewTextDrawer("x", tepra.Rect{})
+	rotated := tm2.NewTextDrawer("x", tm2.Rect{})
 	rotated.Rotate = 90
-	face := tepra.NewTextDrawer("x", tepra.Rect{})
+	face := tm2.NewTextDrawer("x", tm2.Rect{})
 	face.FontFace = 2
-	img := tepra.NewImageDrawer([]byte("png"), tepra.Rect{})
+	img := tm2.NewImageDrawer([]byte("png"), tm2.Rect{})
 	img.Rotate = 4
-	for _, d := range []tepra.Drawer{rotated, face, img} {
-		if _, err := json.Marshal(tepra.Drawers{d}); !errors.Is(err, tepra.ErrCrashesApp) {
+	for _, d := range []tm2.Drawer{rotated, face, img} {
+		if _, err := json.Marshal(tm2.Drawers{d}); !errors.Is(err, tm2.ErrCrashesApp) {
 			t.Errorf("%+v: %v, want ErrCrashesApp", d, err)
 		}
 	}

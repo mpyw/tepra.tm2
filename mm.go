@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 // MMToPoints converts a length in mm to points.
 func MMToPoints(mm float64) float64 {

@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 import (
 	"encoding/json/jsontext"
@@ -139,7 +139,7 @@ func ReadFile(path string) (*File, error) {
 // MarshalJSONTo writes f, unless the app would crash on it.
 func (f *File) MarshalJSONTo(enc *jsontext.Encoder) error {
 	if f.CurrentPage < 0 || f.CurrentPage >= len(f.Documents) {
-		return fmt.Errorf("tepra: current page %d of %d documents: %w", f.CurrentPage, len(f.Documents), ErrCrashesApp)
+		return fmt.Errorf("tm2: current page %d of %d documents: %w", f.CurrentPage, len(f.Documents), ErrCrashesApp)
 	}
 	// fileJSON has File's fields without its methods, so encoding it does
 	// not call MarshalJSONTo again.

@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"bytes"
@@ -69,7 +69,7 @@ func fixturePicture(t *testing.T, w, h int, jpg bool) []byte {
 // thousandth of a point.
 //
 //declscope:shared // the tests compare frames placed by arithmetic
-func fixtureFrameNear(a, b tepra.Rect) bool {
+func fixtureFrameNear(a, b tm2.Rect) bool {
 	for i := range a {
 		if d := a[i] - b[i]; d > 1e-3 || d < -1e-3 {
 			return false
@@ -83,7 +83,7 @@ func fixtureFrameNear(a, b tepra.Rect) bool {
 // its own shape.
 //
 //declscope:shared // the tests of pictures that must cover their frame check it
-func fixtureShapeNear(t *testing.T, pngData []byte, frame tepra.Rect) bool {
+func fixtureShapeNear(t *testing.T, pngData []byte, frame tm2.Rect) bool {
 	t.Helper()
 	cfg, err := png.DecodeConfig(bytes.NewReader(pngData))
 	if err != nil {

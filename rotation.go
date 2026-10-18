@@ -1,4 +1,4 @@
-package tepra
+package tm2
 
 // Rotation turns a drawer in its frame, by a quarter turn or a half turn.
 // Each value was seen in TEPRA LINK 2 for Android, opening a file this

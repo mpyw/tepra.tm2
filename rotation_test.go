@@ -1,4 +1,4 @@
-package tepra_test
+package tm2_test
 
 import (
 	"errors"
@@ -9,17 +9,17 @@ import (
 )
 
 func TestParseRotation(t *testing.T) {
-	for name, want := range map[string]tepra.Rotation{"0": tepra.RotationNone, "90": tepra.Rotation90, "180": tepra.Rotation180, "270": tepra.Rotation270} {
-		got, err := tepra.ParseRotation(name)
+	for name, want := range map[string]tm2.Rotation{"0": tm2.RotationNone, "90": tm2.Rotation90, "180": tm2.Rotation180, "270": tm2.Rotation270} {
+		got, err := tm2.ParseRotation(name)
 		if err != nil || got != want || got.String() != name {
 			t.Errorf("ParseRotation(%q) = %v, %v", name, got, err)
 		}
 	}
 	// The error lists the rotations clockwise, not in the app's order.
-	if _, err := tepra.ParseRotation("45"); !errors.Is(err, tepra.ErrUnknownName) || !strings.HasSuffix(err.Error(), "known: 0, 90, 180, 270") {
+	if _, err := tm2.ParseRotation("45"); !errors.Is(err, tm2.ErrUnknownName) || !strings.HasSuffix(err.Error(), "known: 0, 90, 180, 270") {
 		t.Errorf("ParseRotation(45): %v", err)
 	}
-	if got := tepra.Rotation(90).String(); got != "Rotation(90)" {
+	if got := tm2.Rotation(90).String(); got != "Rotation(90)" {
 		t.Errorf("String() = %q", got)
 	}
 }

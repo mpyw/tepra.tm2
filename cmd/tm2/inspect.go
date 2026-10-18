@@ -12,7 +12,7 @@ import (
 	"github.com/mpyw/tepra.tm2"
 )
 
-// inspectCommand is "tepra inspect".
+// inspectCommand is "tm2 inspect".
 //
 //declscope:shared // main.go makes it a subcommand
 func inspectCommand() *cli.Command {
@@ -24,12 +24,12 @@ func inspectCommand() *cli.Command {
 	}
 }
 
-// inspectAction runs "tepra inspect".
+// inspectAction runs "tm2 inspect".
 func inspectAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() != 1 {
 		return errors.New("inspect takes one file")
 	}
-	f, err := tepra.ReadFile(cmd.Args().First())
+	f, err := tm2.ReadFile(cmd.Args().First())
 	if err != nil {
 		return err
 	}
@@ -41,8 +41,8 @@ func inspectAction(_ context.Context, cmd *cli.Command) error {
 // rows it pours.
 //
 //declscope:shared // mcp.go answers inspect_label with it
-func inspectFile(f *tepra.File) string {
-	mm := tepra.PointsToMM
+func inspectFile(f *tm2.File) string {
+	mm := tm2.PointsToMM
 	lines := []string{fmt.Sprintf("file:    %s (version %s, saved %s)", f.FileName, f.Version, f.Date)}
 	for i, doc := range f.Documents {
 		if len(f.Documents) > 1 {
@@ -83,15 +83,15 @@ func inspectFile(f *tepra.File) string {
 }
 
 // inspectDrawer describes what is particular to d.
-func inspectDrawer(d tepra.Drawer) string {
+func inspectDrawer(d tm2.Drawer) string {
 	switch d := d.(type) {
-	case *tepra.PourDrawer:
+	case *tm2.PourDrawer:
 		return fmt.Sprintf("column %d, size %g, %s", d.ColumnNumber, d.FontSize, d.FontName)
-	case *tepra.TextDrawer:
+	case *tm2.TextDrawer:
 		return fmt.Sprintf("size %g, %s, %q", d.FontSize, d.FontName, d.Text)
-	case *tepra.ImageDrawer:
+	case *tm2.ImageDrawer:
 		return fmt.Sprintf("%d bytes, threshold %d", len(d.Image), d.ImageThreshold)
 	default:
-		return "(not known to tepra)"
+		return "(not known to tm2)"
 	}
 }

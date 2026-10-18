@@ -22,7 +22,7 @@ linters:
             - pkg: io/ioutil
               desc: deprecated; use io and os
 
-        # Package tepra: the .tm2 format. It knows nothing of the CLI or MCP,
+        # Package tm2: the .tm2 format. It knows nothing of the CLI or MCP,
         # and does not log.
         core:
           list-mode: strict
@@ -38,11 +38,11 @@ linters:
             - pkg: log/slog
               desc: return the error
 
-        # The command wires package tepra to the command line and MCP.
+        # The command wires package tm2 to the command line and MCP.
         cmd:
           list-mode: strict
           files:
-            - "**/cmd/tepra/*.go"
+            - "**/cmd/tm2/*.go"
           allow:
             - $gostd
             - github.com/urfave/cli/v3

@@ -1,6 +1,6 @@
 //declscope:core
 
-// Package tepra reads and writes .tm2 files, the labels of TEPRA LINK 2.
+// Package tm2 reads and writes .tm2 files, the labels of TEPRA LINK 2.
 //
 // TEPRA LINK 2 is KING JIM's app for the "TEPRA" PRO label printers. A .tm2
 // file is one line of JSON. This package builds such files, so a label can be
@@ -12,7 +12,7 @@
 // fields of its type, not of those files.
 //
 // Lengths are in points (1/72 inch), as in the file, unless a name says mm.
-package tepra
+package tm2
 
 // Rect is a frame: x, y, width and height, in points. y grows down the tape.
 type Rect [4]float64

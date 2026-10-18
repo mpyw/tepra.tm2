@@ -41,7 +41,7 @@ func TestMCP_createPourLabels(t *testing.T) {
 	if out.Labels != 2 || out.FontSize != 11.5 || out.Path != path || !strings.Contains(out.Message, "on 12 mm tape") {
 		t.Errorf("output %+v", out)
 	}
-	f, err := tepra.ReadFile(path)
+	f, err := tm2.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestMCP_createLabelPages(t *testing.T) {
 	if out.Labels != 2 || out.FontSize != 7.5 || out.LengthMM < 26.3 || out.LengthMM > 26.4 {
 		t.Errorf("output %+v", out)
 	}
-	f, err := tepra.ReadFile(path)
+	f, err := tm2.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,15 +90,15 @@ func TestMCP_createTextLabel(t *testing.T) {
 	if out.Labels != 1 || out.FontSize != 14 {
 		t.Errorf("output %+v", out)
 	}
-	f, err := tepra.ReadFile(path)
+	f, err := tm2.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ds := f.Documents[0].Drawers
-	if box, ok := ds[0].(*tepra.TextDrawer); !ok || box.BIType != tepra.BorderTopBottom || box.BILineWidthValue != 2.8 {
+	if box, ok := ds[0].(*tm2.TextDrawer); !ok || box.BIType != tm2.BorderTopBottom || box.BILineWidthValue != 2.8 {
 		t.Errorf("drawer 0 %+v, want lines 2.8 wide above and below", ds[0])
 	}
-	if d, ok := ds[len(ds)-1].(*tepra.TextDrawer); !ok || d.FillMode != tepra.FillShaded || d.Alignment != tepra.AlignRight || d.VerticalAlignment != tepra.VerticalAlignBottom {
+	if d, ok := ds[len(ds)-1].(*tm2.TextDrawer); !ok || d.FillMode != tm2.FillShaded || d.Alignment != tm2.AlignRight || d.VerticalAlignment != tm2.VerticalAlignBottom {
 		t.Errorf("last drawer %+v, want shaded text at the bottom right", ds[len(ds)-1])
 	}
 }
@@ -123,7 +123,7 @@ func TestMCP_pictures(t *testing.T) {
 	if out.Labels != 2 || out.FontSize != 12 {
 		t.Errorf("output %+v", out)
 	}
-	f, err := tepra.ReadFile(path)
+	f, err := tm2.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,15 +155,15 @@ func TestMCP_newOptions(t *testing.T) {
 	if out.Labels != 1 {
 		t.Errorf("output %+v", out)
 	}
-	f, err := tepra.ReadFile(path)
+	f, err := tm2.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	doc := f.Documents[0]
-	if d, ok := doc.Drawers[0].(*tepra.PourDrawer); !ok || d.Attribute != tepra.CodeQR || d.Rotate != tepra.Rotation180 {
+	if d, ok := doc.Drawers[0].(*tm2.PourDrawer); !ok || d.Attribute != tm2.CodeQR || d.Rotate != tm2.Rotation180 {
 		t.Errorf("drawer %+v, want a QR code turned 180°", doc.Drawers[0])
 	}
-	if doc.AutoLength || doc.FixedLength != tepra.MMToPoints(30) {
+	if doc.AutoLength || doc.FixedLength != tm2.MMToPoints(30) {
 		t.Errorf("auto %v, fixed %v", doc.AutoLength, doc.FixedLength)
 	}
 	res := mcpCallResult(t, session, "create_text_label", map[string]any{"path": path, "text": "a", "overwrite": true, "image_threshold": 300})
@@ -321,7 +321,7 @@ func TestMCP_upperCaseTM2(t *testing.T) {
 	session := mcpConnect(t)
 	path := filepath.Join(t.TempDir(), "M.TM2")
 	out := mcpCall(t, session, "create_text_label", map[string]any{"path": path, "text": "a"})
-	f, err := tepra.ReadFile(out.Path)
+	f, err := tm2.ReadFile(out.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
