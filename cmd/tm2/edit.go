@@ -31,7 +31,8 @@ func editCommand() *cli.Command {
 			"/image, or the image of an image drawer added.\n" +
 			"Keys are not added or removed, since the app writes every key, and a whole object\n" +
 			"put in place needs every key. A drawer added starts as the app makes one of its\n" +
-			"type. Without -o the file is changed in place.",
+			"type. Without -o the file is changed in place. With it, the label takes the\n" +
+			"name of the new file, unless the patch sets /fileName.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "output",
@@ -75,7 +76,7 @@ func editAction(_ context.Context, cmd *cli.Command) error {
 	if !labelIsTM2(out) {
 		return fmt.Errorf("%s does not name a .tm2 file", out)
 	}
-	f, err := editFile(path, ops, labelReadPicture)
+	f, err := editFile(path, out, ops, labelReadPicture)
 	if err != nil {
 		return err
 	}
@@ -98,11 +99,15 @@ type editOp struct {
 	ImagePath string `json:"image_path,omitempty" jsonschema:"path of a PNG, JPEG or GIF picture: the value of a path ending in /image, given with no value, or the image of a drawer of type image given as the value"`
 }
 
-// editFile reads the .tm2 file at path, and applies ops to it. readPicture
-// reads the picture of an ImagePath.
+// editFile reads the .tm2 file at path, and applies ops to it, to write to
+// out. readPicture reads the picture of an ImagePath.
+//
+// Written to another file, the label takes its name, as a label made there
+// would: the app lists a label by its fileName, not by the file's. An
+// operation that sets fileName keeps its own.
 //
 //declscope:shared // mcp.go edits a file with it
-func editFile(path string, ops []editOp, readPicture func(string) ([]byte, error)) (*tm2.File, error) {
+func editFile(path, out string, ops []editOp, readPicture func(string) ([]byte, error)) (*tm2.File, error) {
 	f, err := tm2.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -116,7 +121,21 @@ func editFile(path string, ops []editOp, readPicture func(string) ([]byte, error
 	if err := f.Patch(patch...); err != nil {
 		return nil, err
 	}
+	if !editInPlace(path, out) && !editNamesLabel(ops) {
+		f.FileName = labelName(out) + ".tm2"
+	}
 	return f, nil
+}
+
+// editNamesLabel reports whether an operation of ops sets the label's
+// fileName, or the whole file.
+func editNamesLabel(ops []editOp) bool {
+	for _, op := range ops {
+		if op.Op != "test" && (op.Path == "/fileName" || op.Path == "") {
+			return true
+		}
+	}
+	return false
 }
 
 // editInPlace reports whether out is the file read, at path, which an edit

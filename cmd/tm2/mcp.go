@@ -95,7 +95,7 @@ type mcpInspectInput struct {
 type mcpEditInput struct {
 	Path       string   `json:"path" jsonschema:"absolute path of the .tm2 file to change"`
 	Operations []editOp `json:"operations" jsonschema:"a JSON Patch (RFC 6902) on the file as inspect_label with full shows it, applied in order; all apply, or nothing is written"`
-	Output     string   `json:"output,omitempty" jsonschema:"absolute path of the .tm2 file to write, ending in .tm2; the file at path when left out"`
+	Output     string   `json:"output,omitempty" jsonschema:"absolute path of the .tm2 file to write, ending in .tm2; the file at path when left out. The label takes its name in the app, unless an operation sets /fileName"`
 	Overwrite  bool     `json:"overwrite,omitempty" jsonschema:"replace the file at output when it exists; the file at path is changed in place without it"`
 }
 
@@ -242,7 +242,7 @@ func mcpEdit(_ context.Context, _ *mcp.CallToolRequest, in mcpEditInput) (*mcp.C
 	if !labelIsTM2(out) {
 		return nil, nil, fmt.Errorf("%w: %s", errMCPNotTM2, out)
 	}
-	f, err := editFile(in.Path, in.Operations, mcpReadPicture)
+	f, err := editFile(in.Path, out, in.Operations, mcpReadPicture)
 	if err != nil {
 		return nil, nil, err
 	}

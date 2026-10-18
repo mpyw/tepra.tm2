@@ -386,6 +386,44 @@ func TestEdit_rejects(t *testing.T) {
 	}
 }
 
+// Written to another file, the label takes its name in the app, unless the
+// patch names it.
+func TestEdit_namesTheLabelByOutput(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "x.tm2")
+	if _, err := runMain(t, "", "text", "-o", path, "a"); err != nil {
+		t.Fatal(err)
+	}
+	text := `[{"op": "replace", "path": "/documents/0/drawers/0/TIText", "value": "b"}]`
+	named := `[{"op": "replace", "path": "/fileName", "value": "kept.tm2"}]`
+	for _, tt := range []struct {
+		patch, in, out, want string
+	}{
+		{text, "x.tm2", "y.tm2", "y.tm2"},
+		{text, "x.tm2", "W.TM2", "W.tm2"},
+		{named, "x.tm2", "z.tm2", "kept.tm2"},
+		// In place, the name stays as it is.
+		{text, "z.tm2", "", "kept.tm2"},
+	} {
+		args := []string{"edit", filepath.Join(dir, tt.in)}
+		out := filepath.Join(dir, tt.in)
+		if tt.out != "" {
+			out = filepath.Join(dir, tt.out)
+			args = append(args, "-o", out)
+		}
+		if _, err := runMain(t, tt.patch, args...); err != nil {
+			t.Fatal(err)
+		}
+		f, err := tm2.ReadFile(out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if f.FileName != tt.want {
+			t.Errorf("%s to %q: fileName %q, want %q", tt.in, tt.out, f.FileName, tt.want)
+		}
+	}
+}
+
 // Another path to the file read, such as a symlink, is an edit in place.
 func TestEdit_inPlaceThroughASymlink(t *testing.T) {
 	dir := t.TempDir()

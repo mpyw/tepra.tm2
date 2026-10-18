@@ -314,6 +314,10 @@ func TestMCP_editLabel(t *testing.T) {
 	if img, ok := f.Documents[1].Drawers[1].(*tm2.ImageDrawer); !ok || img.Frame != (tm2.Rect{0, 0, 10, 10}) {
 		t.Errorf("drawer %+v, want the picture", f.Documents[1].Drawers[1])
 	}
+	// The label takes the name of the file written.
+	if f.FileName != "y.tm2" {
+		t.Errorf("fileName %q, want y.tm2", f.FileName)
+	}
 	// out is there now.
 	if res := mcpCallResult(t, session, "edit_label", args); !res.IsError || !strings.Contains(mcpResultText(res), "overwrite: true") {
 		t.Errorf("second call: %s", mcpResultText(res))
