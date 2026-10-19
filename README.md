@@ -27,7 +27,7 @@ It works from an AI assistant over MCP, from the command line, and from Go.
 > This is an unofficial tool. KING JIM does not document the `.tm2` format.
 >
 > - tepra.tm2 writes every key that files from the app have.
-> - Each setting was checked on the screen of TEPRA LINK 2 for Android, with an SR-MK2.
+> - Each setting was checked on the screen of TEPRA LINK 2 for Android, with an SR-MK1.
 > - A new release of the app may change the format.
 
 ## Installation
