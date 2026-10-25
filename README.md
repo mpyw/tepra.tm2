@@ -9,6 +9,7 @@ Make label files for KING JIM's TEPRA LINK 2 app.
 [![Test](https://github.com/mpyw/tepra.tm2/actions/workflows/test.yml/badge.svg)](https://github.com/mpyw/tepra.tm2/actions/workflows/test.yml)
 [![Coverage](https://codecov.io/gh/mpyw/tepra.tm2/graph/badge.svg)](https://codecov.io/gh/mpyw/tepra.tm2)
 [![Go Reference](https://pkg.go.dev/badge/github.com/mpyw/tepra.tm2.svg)](https://pkg.go.dev/github.com/mpyw/tepra.tm2)
+[![M8ven Score](https://m8ven.ai/badge/mcp/mpyw-tepra-tm2-1oawlc?v=f27303c8668b6535627a69b0e025b5c7)](https://m8ven.ai/mcp/mpyw-tepra-tm2-1oawlc?s=readme)
 
 </div>
 
