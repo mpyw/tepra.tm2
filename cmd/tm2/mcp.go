@@ -109,6 +109,17 @@ type mcpLabelOutput struct {
 	Message  string  `json:"message" jsonschema:"what was written, and how to print it"`
 }
 
+// mcpWriteAnnotations are the hints of the tools that make a label. With
+// overwrite, they replace a file. The same call again writes the same file,
+// or fails without overwrite since the file is there. They touch only local
+// files.
+var mcpWriteAnnotations = &mcp.ToolAnnotations{
+	ReadOnlyHint:    false,
+	DestructiveHint: new(true),
+	IdempotentHint:  true,
+	OpenWorldHint:   new(false),
+}
+
 // newMCPServer returns the MCP server of "tm2 mcp".
 func newMCPServer(version string) *mcp.Server {
 	s := mcp.NewServer(
@@ -121,26 +132,42 @@ func newMCPServer(version string) *mcp.Server {
 			"Use it for QR codes and barcodes; for other lists, use create_label_pages. " +
 			"The labels share one frame, sized for the longest. The app shows the text at the left of that frame, whatever align says, " +
 			"and inverted fill only behind the letters.",
+		Annotations: mcpWriteAnnotations,
 	}, mcpPour)
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "create_label_pages",
 		Description: "Write a .tm2 file that prints one label per string, each on a page of its own. " +
 			"Each label gets the font size and length that fit it, as create_text_label makes it. " +
 			"Use it for any list of two or more text labels. With length_mm, every label is as long. The app prints the pages together.",
+		Annotations: mcpWriteAnnotations,
 	}, mcpPages)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_text_label",
 		Description: "Write a .tm2 file that prints one label of text.",
+		Annotations: mcpWriteAnnotations,
 	}, mcpText)
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "inspect_label",
 		Description: "Describe what a .tm2 file holds: its tape, its objects (drawers) and the rows it pours. " +
 			"With full, it also returns every key of the file as JSON, and each picture.",
-		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    true,
+			DestructiveHint: new(false),
+			IdempotentHint:  true,
+			OpenWorldHint:   new(false),
+		},
 	}, mcpInspect)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "edit_label",
 		Description: mcpEditDescription,
+		// It changes the file in place, and a patch that adds an item adds
+		// it again when called again.
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    false,
+			DestructiveHint: new(true),
+			IdempotentHint:  false,
+			OpenWorldHint:   new(false),
+		},
 	}, mcpEdit)
 	return s
 }
