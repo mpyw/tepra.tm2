@@ -28,6 +28,35 @@ func TestMCP_tools(t *testing.T) {
 	}
 }
 
+func TestMCP_toolAnnotations(t *testing.T) {
+	// readOnly, destructive, idempotent, openWorld
+	want := map[string][4]bool{
+		"create_label_pages": {false, true, true, false},
+		"create_pour_labels": {false, true, true, false},
+		"create_text_label":  {false, true, true, false},
+		"edit_label":         {false, true, false, false},
+		"inspect_label":      {true, false, true, false},
+	}
+	session := mcpConnect(t)
+	res, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range res.Tools {
+		a := tool.Annotations
+		// Directories reject a tool when a hint is left out, even one
+		// whose default is the value meant.
+		if a == nil || a.DestructiveHint == nil || a.OpenWorldHint == nil {
+			t.Errorf("%s: hints left out: %+v", tool.Name, a)
+			continue
+		}
+		got := [4]bool{a.ReadOnlyHint, *a.DestructiveHint, a.IdempotentHint, *a.OpenWorldHint}
+		if got != want[tool.Name] {
+			t.Errorf("%s: hints %v, want %v", tool.Name, got, want[tool.Name])
+		}
+	}
+}
+
 func TestMCP_createPourLabels(t *testing.T) {
 	session := mcpConnect(t)
 	path := filepath.Join(t.TempDir(), "日用品.tm2")
