@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "tm2",
-  "display_name": "TEPRA LINK 2 labels",
+  "display_name": "tepra.tm2",
   "version": "0.0.0",
   "description": "Make, read and change .tm2 label files for KING JIM's TEPRA LINK 2 app.",
   "long_description": "Ask for labels in your own words. Claude writes a `.tm2` file, and you print it from TEPRA LINK 2 on your phone. It can also read a `.tm2` file and change it, one the app saved too. The tools write a file. They do not print.",
