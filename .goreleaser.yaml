@@ -50,6 +50,9 @@ archives:
 
 checksum:
   name_template: "checksums.txt"
+  extra_files:
+    # Built by release.yml before this runs.
+    - glob: ./.mcpb-build/tm2.mcpb
 
 changelog:
   sort: asc
@@ -66,3 +69,6 @@ release:
     owner: mpyw
     name: tepra.tm2
   draft: false
+  extra_files:
+    # Built by release.yml before this runs.
+    - glob: ./.mcpb-build/tm2.mcpb
