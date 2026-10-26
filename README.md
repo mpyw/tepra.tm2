@@ -57,18 +57,6 @@ The MCP server is `tm2 mcp`.
 > `tm2.mcpb` adds the tools to the chat of Claude Desktop only.
 > The Code tab of Claude Desktop runs Claude Code, and its sessions do not get them.
 
-> [!TIP]
-> Claude Desktop does not read the `PATH` of your shell.
-> If you set up `tm2` by hand in `claude_desktop_config.json`, give the absolute path of `tm2` as the command.
->
-> ```json
-> {
->   "mcpServers": {
->     "tm2": { "command": "/absolute/path/to/tm2", "args": ["mcp"] }
->   }
-> }
-> ```
-
 ### Library
 
 ```sh
