@@ -1,0 +1,61 @@
+{
+  "manifest_version": "0.3",
+  "name": "tm2",
+  "display_name": "TEPRA LINK 2 labels",
+  "version": "0.0.0",
+  "description": "Make, read and change .tm2 label files for KING JIM's TEPRA LINK 2 app.",
+  "long_description": "Ask for labels in your own words. Claude writes a `.tm2` file, and you print it from TEPRA LINK 2 on your phone. It can also read a `.tm2` file and change it, one the app saved too. The tools write a file. They do not print.",
+  "author": {
+    "name": "mpyw",
+    "url": "https://github.com/mpyw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mpyw/tepra.tm2.git"
+  },
+  "homepage": "https://github.com/mpyw/tepra.tm2",
+  "documentation": "https://github.com/mpyw/tepra.tm2#readme",
+  "support": "https://github.com/mpyw/tepra.tm2/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/tm2",
+    "mcp_config": {
+      "command": "${__dirname}/server/tm2",
+      "args": ["mcp"],
+      "env": {},
+      "platform_overrides": {
+        "win32": {
+          "command": "${__dirname}/server/tm2.exe"
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "create_text_label",
+      "description": "Write a .tm2 file that prints one label of text."
+    },
+    {
+      "name": "create_label_pages",
+      "description": "Write a .tm2 file that prints one label per string, each on a page of its own."
+    },
+    {
+      "name": "create_pour_labels",
+      "description": "Write a .tm2 file that prints one label per string through the app's pour form, for QR codes and barcodes."
+    },
+    {
+      "name": "inspect_label",
+      "description": "Describe what a .tm2 file holds."
+    },
+    {
+      "name": "edit_label",
+      "description": "Change a .tm2 file by a JSON Patch."
+    }
+  ],
+  "keywords": ["tepra", "label", "king jim", "qr code", "barcode"],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "win32"]
+  }
+}
