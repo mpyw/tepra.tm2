@@ -46,12 +46,16 @@ Releases cover macOS, Linux and Windows, each on amd64 and arm64.
 ### MCP Server
 
 The MCP server is `tm2 mcp`.
-First install `tm2` as a [tool](#tool), as above.
-Then add it to your assistant. For Claude Code:
 
-```sh
-claude mcp add tm2 -- tm2 mcp
-```
+| Assistant | How |
+| --- | --- |
+| Claude Desktop, on macOS or Windows | Download [`tm2.mcpb`](https://github.com/mpyw/tepra.tm2/releases/latest/download/tm2.mcpb) and open it. Claude Desktop asks you to install it. It needs nothing else installed |
+| Claude Code | First install `tm2` as a [tool](#tool), as above. Then run `claude mcp add tm2 -- tm2 mcp` |
+| Another assistant | First install `tm2` as a [tool](#tool). Add a server whose command is the absolute path of `tm2`, with the argument `mcp` |
+
+> [!IMPORTANT]
+> `tm2.mcpb` adds the tools to the chat of Claude Desktop only.
+> The Code tab of Claude Desktop runs Claude Code, and its sessions do not get them.
 
 ### Library
 

@@ -59,3 +59,25 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The bundle installs tm2 in Claude Desktop, which runs on macOS and
+      # Windows. Windows on arm64 runs the amd64 binary.
+      - name: Build and upload the MCP bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          binary() {
+            jq -er --arg goos "$1" --arg goarch "$2" \
+              'first(.[] | select(.goos == $goos and .goarch == $goarch and (.type == "Binary" or .type == "Universal Binary")) | .path)' \
+              dist/artifacts.json
+          }
+          mkdir -p dist/mcpb/server
+          cp "$(binary darwin all)" dist/mcpb/server/tm2
+          cp "$(binary windows amd64)" dist/mcpb/server/tm2.exe
+          cp .github/assets/icon.png dist/mcpb/icon.png
+          jq --arg v "${VERSION#v}" '.version = $v' mcpb/manifest.json > dist/mcpb/manifest.json
+          npx --yes @anthropic-ai/mcpb@2.1.2 validate dist/mcpb/manifest.json
+          npx --yes @anthropic-ai/mcpb@2.1.2 pack dist/mcpb dist/tm2.mcpb
+          (cd dist && sha256sum tm2.mcpb >> checksums.txt)
+          gh release upload "$VERSION" dist/tm2.mcpb dist/checksums.txt --clobber

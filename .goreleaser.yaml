@@ -25,8 +25,18 @@ builds:
       # tm2 --version reports the release, not the go install version.
       - -s -w -X main.version={{ .Version }}
 
+universal_binaries:
+  # One macOS binary for the MCP bundle, which has no way to pick a binary by
+  # CPU. The archives keep a binary per CPU.
+  - id: tm2-universal
+    ids:
+      - tm2
+    replace: false
+
 archives:
   - id: default
+    ids:
+      - tm2
     formats:
       - tar.gz
     format_overrides:

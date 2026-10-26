@@ -5,6 +5,7 @@ import (
 	"encoding/json/v2"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -25,6 +26,40 @@ func TestMCP_tools(t *testing.T) {
 	}
 	if got := strings.Join(names, ","); got != "create_label_pages,create_pour_labels,create_text_label,edit_label,inspect_label" {
 		t.Errorf("tools %s", got)
+	}
+}
+
+func TestMCP_manifestListsEveryTool(t *testing.T) {
+	// Claude Desktop shows the tools of mcpb/manifest.json before it runs the
+	// server, so the list must match what the server serves.
+	b, err := os.ReadFile("../../mcpb/manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		Tools []struct {
+			Name string `json:"name"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(b, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	var listed []string
+	for _, tool := range manifest.Tools {
+		listed = append(listed, tool.Name)
+	}
+	slices.Sort(listed)
+	session := mcpConnect(t)
+	res, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var served []string
+	for _, tool := range res.Tools {
+		served = append(served, tool.Name)
+	}
+	if !slices.Equal(listed, served) {
+		t.Errorf("manifest lists %v, server serves %v", listed, served)
 	}
 }
 
