@@ -56,12 +56,6 @@ The MCP server is `tm2 mcp`.
 > [!IMPORTANT]
 > `tm2.mcpb` adds the tools to the chat of Claude Desktop only.
 > The Code tab of Claude Desktop runs Claude Code, and its sessions do not get them.
-> For the Code tab, add `tm2` as for Claude Code.
-> Add `--scope user` to have it in every folder:
->
-> ```sh
-> claude mcp add --scope user tm2 -- tm2 mcp
-> ```
 
 > [!TIP]
 > Claude Desktop does not read the `PATH` of your shell.
