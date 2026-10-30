@@ -11,6 +11,8 @@ Make label files for KING JIM's TEPRA LINK 2 app.
 [![Go Reference](https://pkg.go.dev/badge/github.com/mpyw/tepra.tm2.svg)](https://pkg.go.dev/github.com/mpyw/tepra.tm2)
 [![M8ven Score](https://m8ven.ai/badge/mcp/mpyw-tepra-tm2-1oawlc?v=f27303c8668b6535627a69b0e025b5c7)](https://m8ven.ai/mcp/mpyw-tepra-tm2-1oawlc?s=readme)
 
+<p>Write-up: 🇯🇵 <a href="https://zenn.dev/yumemi_inc/articles/tepra-tm2-claude-labels">JP</a></p>
+
 </div>
 
 TEPRA LINK 2 saves labels as `.tm2` files. tepra.tm2 writes them.
