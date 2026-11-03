@@ -32,7 +32,7 @@ const mcpInstructions = "Make, read and change .tm2 label files for KING JIM's T
 	"The user opens the file in TEPRA LINK 2 (on a phone, through the OS's share sheet) and prints from there. " +
 	`Use "\n" in a label for a line break. ` +
 	"For two or more labels, use create_label_pages; use create_pour_labels only for QR codes and barcodes. " +
-	"Inverted text (white on black) can have only one line in a text box. " +
+	"[BUG WORKAROUND] Inverted text (white on black) can have only one line in a text box. " +
 	"With two or more lines, the app prints only the last line in white. The other lines print in black. " +
 	"The app's preview does not show this. " +
 	"So put each line in its own text box, one under the other, with no gap. " +
@@ -192,7 +192,7 @@ const mcpEditDescription = "Change a .tm2 file by a JSON Patch (RFC 6902) on the
 	"BIType on a pour drawer shows no border, and on a text drawer with text it draws a line that touches the text. " +
 	"Values: TIAlignment 0 left, 1 center, 2 right; TIVerticalAlignment 0 top, 1 middle, 2 bottom; " +
 	"TIFillMode 0 none, 1 inverted, 2 shaded; Rotate 0 none, 1 180°, 2 270°, 3 90°; " +
-	"Inverted text (TIFillMode 1) can have only one line in a text drawer. " +
+	"[BUG WORKAROUND] Inverted text (TIFillMode 1) can have only one line in a text drawer. " +
 	"For two or more lines, use one text drawer per line, one under the other, with no gap. " +
 	"BIType 0 none, 1 box, 2 rounded, 3 top-bottom, 4 top, 5 bottom; " +
 	"Attribute (pour) 0 text, 1 QR, 2 CODE39, 3 CODE128, 4 JAN-13; imageMode 1 diffusion, 2 threshold, 3 screen; " +
