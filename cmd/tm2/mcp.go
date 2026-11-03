@@ -32,8 +32,9 @@ const mcpInstructions = "Make, read and change .tm2 label files for KING JIM's T
 	"The user opens the file in TEPRA LINK 2 (on a phone, through the OS's share sheet) and prints from there. " +
 	`Use "\n" in a label for a line break. ` +
 	"For two or more labels, use create_label_pages; use create_pour_labels only for QR codes and barcodes. " +
-	"Give the style (fill, border, bold) when making a label, not with edit_label afterwards: " +
-	"inverted fill on text of several lines needs a box per line, which the create tools make and edit_label does not."
+	"TEPRA LINK 2 prints only the last line of an inverted text box inverted, though its preview shows every line inverted: " +
+	"inverted text of several lines needs a text box per line, stacked with frames that touch. " +
+	"The create tools make it so; with edit_label, make it so yourself."
 
 // errMCPRelativePath is a path that is not absolute. The server's working
 // directory is not the client's, so a relative path would point elsewhere.
@@ -53,7 +54,7 @@ type mcpLabelStyle struct {
 	VerticalAlign  string   `json:"valign,omitempty" jsonschema:"where the text goes down: top, middle (the default) or bottom"`
 	Rotate         string   `json:"rotate,omitempty" jsonschema:"turn the text clockwise, in degrees: 0 (the default), 90, 180 or 270"`
 	Vertical       bool     `json:"vertical,omitempty" jsonschema:"write the text top to bottom"`
-	Fill           string   `json:"fill,omitempty" jsonschema:"box behind the text: none (the default), inverted (white text on black; text of several lines gets a box per line, so set it here rather than with edit_label later) or shaded (black text on a light dotted box)"`
+	Fill           string   `json:"fill,omitempty" jsonschema:"box behind the text: none (the default), inverted (white text on black) or shaded (black text on a light dotted box)"`
 	Border         string   `json:"border,omitempty" jsonschema:"line around the label: none (the default), box, rounded, top-bottom, top or bottom"`
 	BorderWidth    *float64 `json:"border_width,omitempty" jsonschema:"width of the border; 0.7 when left out, 0.35 is thin and 2.8 is thick"`
 	IconPath       string   `json:"icon_path,omitempty" jsonschema:"absolute path of a PNG, JPEG or GIF picture to put before the text, as high as the tape prints"`
