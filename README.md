@@ -305,7 +305,7 @@ In `pages` and `pour` they apply to every label.
 | `--valign` | `middle` | Where the text goes down: `top`, `middle` or `bottom` |
 | `--rotate` | `0` | Turn the text clockwise: `0`, `90`, `180` or `270` degrees |
 | `--vertical` | off | Write the text top to bottom |
-| `--fill` | `none` | The box behind the text: `none`, `inverted` (white on black) or `shaded` (a light dotted box).<br><br>[BUG WORKAROUND] With `inverted`, each line gets its own box. The app inverts only the last line of a box |
+| `--fill` | `none` | The box behind the text: `none`, `inverted` (white on black) or `shaded` (a light dotted box).<br><br>**[BUG WORKAROUND]**<br>With `inverted`, each line gets its own box. The app inverts only the last line of a box |
 | `--border` | `none` | The line around the label: `none`, `box`, `rounded`, `top-bottom`, `top` or `bottom` |
 | `--border-width` | `0.7` | The width of the border. `0.35` is thin, `2.8` is thick |
 | `--icon` | none | A PNG, JPEG or GIF file to put before the text, as high as the tape prints |
@@ -434,7 +434,9 @@ Either every operation applies, or nothing changes.
 
 > [!WARNING]
 >
-> [BUG WORKAROUND] Inverted text (`TIFillMode` `1`) can have only one line in a text box.
+> **[BUG WORKAROUND]**
+>
+> Inverted text (`TIFillMode` `1`) can have only one line in a text box.
 > With two or more lines, the app prints only the last line in white. The other lines print in black. The app's preview does not show this.
 > Put each line in its own text box, one under the other, with no gap.
 > `tm2 text --fill inverted` and the other commands already do this.
