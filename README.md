@@ -305,7 +305,7 @@ In `pages` and `pour` they apply to every label.
 | `--valign` | `middle` | Where the text goes down: `top`, `middle` or `bottom` |
 | `--rotate` | `0` | Turn the text clockwise: `0`, `90`, `180` or `270` degrees |
 | `--vertical` | off | Write the text top to bottom |
-| `--fill` | `none` | The box behind the text: `none`, `inverted` (white on black) or `shaded` (a light dotted box). With `inverted`, each line of text gets a box of its own, since the app inverts only the last line of a box |
+| `--fill` | `none` | The box behind the text: `none`, `inverted` (white on black) or `shaded` (a light dotted box). With `inverted`, each line gets its own box. The app inverts only the last line of a box |
 | `--border` | `none` | The line around the label: `none`, `box`, `rounded`, `top-bottom`, `top` or `bottom` |
 | `--border-width` | `0.7` | The width of the border. `0.35` is thin, `2.8` is thick |
 | `--icon` | none | A PNG, JPEG or GIF file to put before the text, as high as the tape prints |
@@ -433,9 +433,10 @@ Either every operation applies, or nothing changes.
 > Set `frame` too when the size must change. A frame is x, y, width and height in points. 1 mm is 2.835 points.
 
 > [!WARNING]
-> `TIFillMode` `1` (inverted) on a text box of two or more lines prints only its last line inverted. The app's preview shows every line inverted, so it shows up only on the tape.
-> Put each line in a text box of its own instead, each inverted, one above the other with frames that touch.
-> `tm2 text --fill inverted` and the other commands already make the boxes this way.
+> Inverted text (`TIFillMode` `1`) can have only one line in a text box.
+> With two or more lines, the app prints only the last line in white. The other lines print in black. The app's preview does not show this.
+> Put each line in its own text box, one under the other, with no gap.
+> `tm2 text --fill inverted` and the other commands already do this.
 
 `image_path` in an operation gives a picture, from a PNG, JPEG or GIF file.
 It is the value of a path that ends in `/image`, given with no `value`.
