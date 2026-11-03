@@ -432,6 +432,11 @@ Either every operation applies, or nothing changes.
 > A patch does not lay the label out again. Text made longer keeps its frame, and the app fits it there.
 > Set `frame` too when the size must change. A frame is x, y, width and height in points. 1 mm is 2.835 points.
 
+> [!WARNING]
+> `TIFillMode` `1` (inverted) on a text box of two or more lines prints only its last line inverted. The app's preview shows every line inverted, so it shows up only on the tape.
+> Put each line in a text box of its own instead, each inverted, one above the other with frames that touch.
+> `tm2 text --fill inverted` and the other commands already make the boxes this way.
+
 `image_path` in an operation gives a picture, from a PNG, JPEG or GIF file.
 It is the value of a path that ends in `/image`, given with no `value`.
 Or it is the image of a drawer of type `image`, given as the `value`:
