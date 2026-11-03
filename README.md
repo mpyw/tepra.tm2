@@ -305,7 +305,7 @@ In `pages` and `pour` they apply to every label.
 | `--valign` | `middle` | Where the text goes down: `top`, `middle` or `bottom` |
 | `--rotate` | `0` | Turn the text clockwise: `0`, `90`, `180` or `270` degrees |
 | `--vertical` | off | Write the text top to bottom |
-| `--fill` | `none` | The box behind the text: `none`, `inverted` (white on black) or `shaded` (a light dotted box) |
+| `--fill` | `none` | The box behind the text: `none`, `inverted` (white on black) or `shaded` (a light dotted box). With `inverted`, each line of text gets a box of its own, since the app inverts only the last line of a box |
 | `--border` | `none` | The line around the label: `none`, `box`, `rounded`, `top-bottom`, `top` or `bottom` |
 | `--border-width` | `0.7` | The width of the border. `0.35` is thin, `2.8` is thick |
 | `--icon` | none | A PNG, JPEG or GIF file to put before the text, as high as the tape prints |
